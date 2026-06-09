@@ -1,7 +1,7 @@
 using BepInEx.Logging;
 using JetBrains.Annotations;
 
-namespace ExampleMod.Source;
+namespace BetterMapControls.Source;
 
 [PublicAPI]
 internal static class Log {

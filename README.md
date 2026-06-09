@@ -1,3 +1,3 @@
-# ExampleMod
+# BetterMapControls
 
 A Hollow Knight: Silksong mod.

@@ -2,10 +2,10 @@ using System;
 using BepInEx;
 using HarmonyLib;
 
-namespace ExampleMod.Source;
+namespace BetterMapControls.Source;
 
-[BepInAutoPlugin("io.github.yourgithubusername.examplemod")]
-public partial class ExampleModPlugin : BaseUnityPlugin {
+[BepInAutoPlugin("io.github.jakobhellermann.bettermapcontrols")]
+public partial class BetterMapControlsPlugin : BaseUnityPlugin {
     private Harmony harmony = null!;
 
     private void Awake() {
