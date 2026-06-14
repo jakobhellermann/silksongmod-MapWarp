@@ -5,7 +5,7 @@ schemaVersion = "0.0.1"
 # The name of the team you are publishing as
 namespace = "jakobhellermann"
 # max 250 characters
-description = "Example mod description"
+description = "Mouse controls for the Silksong map: scroll to zoom toward the cursor, drag to pan, right-click to teleport. Plus options to reveal the full map and outline rooms."
 
 # Replace this with a correct repo URL if the default is not accurate
 websiteUrl = "https://github.com/jakobhellermann/BetterMapControls"
@@ -36,8 +36,8 @@ target = "/"
 
 [publish]
 repository = "https://thunderstore.io"
-communities = [ "hollow-knight-silksong" ]
+communities = ["hollow-knight-silksong"]
 
 [publish.categories]
 # available categories can be found at https://github.com/thunderstore-io/ecosystem-schema/blob/master/games/data/hollow-knight-silksong.yml
-hollow-knight-silksong = [ "mods" ]
+hollow-knight-silksong = ["mods"]
