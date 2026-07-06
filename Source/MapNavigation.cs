@@ -26,6 +26,11 @@ public class MapNavigation : MonoBehaviour {
     private GUIStyle? previewStyle;
     private float prevSize = -1f;
 
+    // True while a map is open. The InputHandler patch below reads this to keep the OS cursor visible and
+    // unlocked on the map. Without it the game locks the cursor when idle (everywhere but menus), which both
+    // warps the cursor to screen-center and makes Input.mousePosition read center.
+    internal static bool MapOpen;
+
     private void Awake() {
         cam = GetComponent<Camera>();
         var decoratorGo = GameObject.Find("Decorator Camera");
@@ -37,7 +42,8 @@ public class MapNavigation : MonoBehaviour {
 
     private void Update() {
         try {
-            if (!cam || !cam.enabled || !cam.gameObject.activeInHierarchy) {
+            MapOpen = cam && cam.enabled && cam.gameObject.activeInHierarchy;
+            if (!MapOpen) {
                 prevSize = -1f;
                 return;
             }
@@ -50,18 +56,7 @@ public class MapNavigation : MonoBehaviour {
         }
     }
 
-    // The map is mouse-driven, but InputHandler.Update hides the OS cursor every frame unless the game is
-    // paused. Force it visible from LateUpdate (runs after all Update()s, so we win); on close this stops and
-    // InputHandler hides it again on its own.
-    private void LateUpdate() {
-        try {
-            if (!cam || !cam.enabled || !cam.gameObject.activeInHierarchy) return;
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-        } catch (Exception e) {
-            Log.Error(e);
-        }
-    }
+    private void OnDisable() => MapOpen = false;
 
     // Draw the teleport target (the room under the cursor, computed by MapTeleport) next to the cursor.
     private void OnGUI() {
@@ -77,6 +72,8 @@ public class MapNavigation : MonoBehaviour {
 
             var content = new GUIContent(room);
             var size = previewStyle.CalcSize(content);
+            // Input.mousePosition (screen space, bottom-left origin) — absolute, so unlike
+            // Event.current.mousePosition it isn't affected by GUI-matrix state between OnGUI passes.
             var mp = Input.mousePosition;
             var rect = new Rect(mp.x + 16f, Screen.height - mp.y + 8f, size.x, size.y);
 
@@ -183,5 +180,19 @@ internal static class MapNavigationPatchQuickMap {
     [UsedImplicitly]
     private static void Postfix() {
         MapNavigation.ResetView();
+    }
+}
+
+// While a map is open, force the game's own cursor handling to keep the OS cursor enabled (visible +
+// unlocked). InputHandler otherwise locks the cursor whenever there's no mouse movement (everywhere but
+// menus), which warps it to screen-center and makes Input.mousePosition read center — breaking the mouse
+// features and the hover preview whenever the cursor is held still.
+[HarmonyPatch(typeof(InputHandler), "SetCursorEnabled", typeof(bool))]
+internal static class MapNavigationPatchCursor {
+#pragma warning disable HARMONIZE001
+    [UsedImplicitly]
+    private static void Prefix(ref bool isEnabled) {
+#pragma warning restore HARMONIZE001
+        if (MapNavigation.MapOpen) isEnabled = true;
     }
 }
