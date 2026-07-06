@@ -53,9 +53,8 @@ public class MapRoomBorders : MonoBehaviour {
             foreach (var (scene, sr) in scenes) {
                 var vp = cam.WorldToViewportPoint(sr.bounds.center);
                 if (vp.z < 0 || vp.x < 0 || vp.x > 1 || vp.y < 0 || vp.y > 1) continue;
-                var screenPos =
-                    cam.WorldToScreenPoint(new Vector3(sr.bounds.min.x, sr.bounds.max.y, sr.bounds.center.z));
-                var guiPos = new Vector2(screenPos.x, Screen.height - screenPos.y);
+                var guiPos = ViewportToGui(cam.WorldToViewportPoint(
+                    new Vector3(sr.bounds.min.x, sr.bounds.max.y, sr.bounds.center.z)));
                 var label = new GUIContent(scene.name);
                 var size = GUI.skin.label.CalcSize(label);
                 GUI.Label(new Rect(guiPos.x, guiPos.y, size.x, size.y), label);
@@ -63,6 +62,28 @@ public class MapRoomBorders : MonoBehaviour {
         } catch (Exception e) {
             Log.Error(e);
         }
+    }
+
+    // Map a camera viewport point (0..1, bottom-left) to on-screen GUI coords (top-left). The map renders at
+    // cam.aspect into a texture shown centered on screen with letterbox/pillarbox bars, so on-screen space
+    // differs from the camera's render space whenever the window aspect doesn't match — WorldToScreenPoint
+    // (texture pixels) would be wrong and scale with pan. Reduces to a plain map when the aspects match.
+    private Vector2 ViewportToGui(Vector3 vp) {
+        float sw = Screen.width, sh = Screen.height, a = cam.aspect;
+        float dw, dh, dx, dy;
+        if (sw / sh > a) {
+            dh = sh;
+            dw = sh * a;
+            dx = (sw - dw) * 0.5f;
+            dy = 0f;
+        } else {
+            dw = sw;
+            dh = sw / a;
+            dx = 0f;
+            dy = (sh - dh) * 0.5f;
+        }
+
+        return new Vector2(dx + vp.x * dw, sh - (dy + vp.y * dh));
     }
 
     private void OnPostRender() {
