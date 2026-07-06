@@ -23,10 +23,11 @@ public partial class BetterMapControlsPlugin : BaseUnityPlugin {
             ShowRoomBorders = Config.Bind("Map", "Show Room Borders", true,
                 "Outline each room on the map and label it with its scene name.");
             ShowAllRoomsInAreaMap = Config.Bind("Map", "Show entire map in quickmap", false,
-                "Keep every room in the current area visible, including ones you haven't explored yet.");
+                "Actually display every room fully mapped, including ones you haven't explored yet.");
             RevealEntireMap = Config.Bind("Map", "Reveal entire map", false,
-                "Show the whole map as fully explored — every room in every zone, even zones whose map you "
-                + "haven't acquired and rooms you haven't visited.");
+                "Act as if you've acquired every zone's map, so you can open and pan the whole map even where "
+                + "you haven't been — but only rooms you've actually explored are filled in (combine with "
+                + "\"Show entire map in quickmap\" to fill in the rest).");
 
             harmony = Harmony.CreateAndPatchAll(GetType().Assembly);
             MapReveal.PatchUnlockGate(harmony);

@@ -3,36 +3,33 @@ using HarmonyLib;
 
 namespace BetterMapControls.Source;
 
-// Reveal the entire map as fully explored, even without having acquired any map. Several gates stand in the
-// way, all bypassed (config-gated) here:
-//   * PlayerData.HasAnyMap        — gates the map pane being available in the inventory at all.
-//   * ParentInfo.IsUnlocked       — gates opening the quick map and which zones' areas get enabled.
-//   * GameMap.IsLostInAbyss*      — restrict the map to only the Abyss zone in the Abyss "lost" states.
-//   * GameMap.EnableUnlockedAreas — the per-open event where we activate + force-map every room.
+// Two independent map cheats, all gates bypassed (config-gated) here:
+//   RevealEntireMap ("act as if the map is unlocked, even where you never went"):
+//     * PlayerData.HasAnyMap   — gates the map pane being available in the inventory at all.
+//     * ParentInfo.IsUnlocked  — gates opening the quick map and which zones' areas get enabled.
+//     * GameMap.IsLostInAbyss* — restrict the map to only the Abyss zone in the Abyss "lost" states.
+//   ShowAllRoomsInAreaMap ("actually show every room, including unexplored ones"):
+//     * GameMap.EnableUnlockedAreas postfix — activate + force-map every room (the reliable per-open event;
+//       SetupMap does NOT run on every open).
 [HarmonyPatch]
 internal static class MapReveal {
     private static bool Enabled => BetterMapControlsPlugin.RevealEntireMap.Value;
 
-    // Rooms/zones are (de)activated by GameMap.EnableUnlockedAreas — called when the world map or quick map
-    // opens and on area navigation, i.e. the discrete events that hide rooms (SetupMap does NOT run on every
-    // open, so we can't rely on it). Right after it we activate every room, and for RevealEntireMap also force
-    // it mapped + visited.
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameMap), "EnableUnlockedAreas")]
 #pragma warning disable HARMONIZE001
     // ReSharper disable once InconsistentNaming
     private static void EnableUnlockedAreas(GameMap __instance) {
 #pragma warning restore HARMONIZE001
-        var reveal = Enabled;
-        if (!reveal && !BetterMapControlsPlugin.ShowAllRoomsInAreaMap.Value) return;
+        // Showing all rooms (vs. RevealEntireMap, which only unlocks access to the real map).
+        if (!BetterMapControlsPlugin.ShowAllRoomsInAreaMap.Value) return;
         try {
             var scenes = __instance.GetComponentsInChildren<GameMapScene>(true);
             MapUtil.ActivateAllRooms(scenes, __instance.transform);
-            if (reveal)
-                foreach (var scene in scenes) {
-                    scene.SetVisited();
-                    scene.SetMapped();
-                }
+            foreach (var scene in scenes) {
+                scene.SetVisited();
+                scene.SetMapped();
+            }
         } catch (Exception e) {
             Log.Error(e);
         }
