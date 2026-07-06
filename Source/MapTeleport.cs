@@ -59,6 +59,11 @@ internal static class MapTeleport {
     }
 
     private static void HandleMap(GameMap gameMap) {
+        if (!BetterMapControlsPlugin.EnableTeleport.Value) {
+            PreviewRoom = null;
+            return;
+        }
+
         // The Map Camera renders only while a map (world or quick) is actually open. gameObject.activeInHierarchy on
         // GameMap stays true even when closed, so this is what gates the feature to "a map is open" — and unlike
         // canPan it's also true in the quick map, which is too small to pan.

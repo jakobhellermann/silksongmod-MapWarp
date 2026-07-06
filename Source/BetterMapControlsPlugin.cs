@@ -9,6 +9,7 @@ namespace BetterMapControls.Source;
 [BepInAutoPlugin("io.github.jakobhellermann.bettermapcontrols")]
 [BepInDependency("io.github.jakobhellermann.devutils")]
 public partial class BetterMapControlsPlugin : BaseUnityPlugin {
+    internal static ConfigEntry<bool> EnableTeleport = null!;
     internal static ConfigEntry<bool> ShowRoomBorders = null!;
     internal static ConfigEntry<bool> ShowFullMapInQuickmap = null!;
     internal static ConfigEntry<bool> UnlockEntireMap = null!;
@@ -20,6 +21,8 @@ public partial class BetterMapControlsPlugin : BaseUnityPlugin {
         Log.Info($"Plugin {Name} ({Id}) has loaded!");
 
         try {
+            EnableTeleport = Config.Bind("Teleport", "Enable teleport", true,
+                "Right-click a room on the map to warp there (nearest safe spot; hold Shift for the exact spot).");
             ShowRoomBorders = Config.Bind("Map", "Show Room Borders", true,
                 "Outline each room on the map and label it with its scene name.");
             ShowFullMapInQuickmap = Config.Bind("Map", "Show full map in quickmap", false,
