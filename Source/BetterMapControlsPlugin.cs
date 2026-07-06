@@ -25,9 +25,7 @@ public partial class BetterMapControlsPlugin : BaseUnityPlugin {
             ShowFullMapInQuickmap = Config.Bind("Map", "Show full map in quickmap", false,
                 "Display every room fully mapped, including ones you haven't explored yet.");
             UnlockEntireMap = Config.Bind("Map", "Unlock entire map", false,
-                "Act as if you've acquired every zone's map, so you can open and pan the whole map even where "
-                + "you haven't been — but only rooms you've actually explored are filled in (combine with "
-                + "\"Show full map in quickmap\" to fill in the rest).");
+                "Open and pan the whole map even in zones you haven't acquired it for.");
 
             harmony = Harmony.CreateAndPatchAll(GetType().Assembly);
             MapReveal.PatchUnlockGate(harmony);
