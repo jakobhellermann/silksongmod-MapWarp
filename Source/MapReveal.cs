@@ -4,16 +4,16 @@ using HarmonyLib;
 namespace BetterMapControls.Source;
 
 // Two independent map cheats, all gates bypassed (config-gated) here:
-//   RevealEntireMap ("act as if the map is unlocked, even where you never went"):
+//   UnlockEntireMap ("act as if the map is unlocked, even where you never went"):
 //     * PlayerData.HasAnyMap   — gates the map pane being available in the inventory at all.
 //     * ParentInfo.IsUnlocked  — gates opening the quick map and which zones' areas get enabled.
 //     * GameMap.IsLostInAbyss* — restrict the map to only the Abyss zone in the Abyss "lost" states.
-//   ShowAllRoomsInAreaMap ("actually show every room, including unexplored ones"):
+//   ShowFullMapInQuickmap ("actually show every room, including unexplored ones"):
 //     * GameMap.EnableUnlockedAreas postfix — activate + force-map every room (the reliable per-open event;
 //       SetupMap does NOT run on every open).
 [HarmonyPatch]
 internal static class MapReveal {
-    private static bool Enabled => BetterMapControlsPlugin.RevealEntireMap.Value;
+    private static bool Enabled => BetterMapControlsPlugin.UnlockEntireMap.Value;
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameMap), "EnableUnlockedAreas")]
@@ -21,8 +21,8 @@ internal static class MapReveal {
     // ReSharper disable once InconsistentNaming
     private static void EnableUnlockedAreas(GameMap __instance) {
 #pragma warning restore HARMONIZE001
-        // Showing all rooms (vs. RevealEntireMap, which only unlocks access to the real map).
-        if (!BetterMapControlsPlugin.ShowAllRoomsInAreaMap.Value) return;
+        // Showing all rooms (vs. UnlockEntireMap, which only unlocks access to the real map).
+        if (!BetterMapControlsPlugin.ShowFullMapInQuickmap.Value) return;
         try {
             var scenes = __instance.GetComponentsInChildren<GameMapScene>(true);
             MapUtil.ActivateAllRooms(scenes, __instance.transform);
