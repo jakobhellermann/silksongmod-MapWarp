@@ -8,6 +8,8 @@ namespace MapWarp.Source;
 
 [RequireComponent(typeof(Camera))]
 public class MapRoomBorders : MonoBehaviour {
+    private static MapRoomBorders? active;
+
     private Camera cam = null!;
 
     private GameMap? gameMap;
@@ -35,9 +37,11 @@ public class MapRoomBorders : MonoBehaviour {
         }
 
         scenes = list.ToArray();
+        active = this;
     }
 
     private void OnDestroy() {
+        if (active == this) active = null;
         Destroy(mat);
     }
 
@@ -115,6 +119,17 @@ public class MapRoomBorders : MonoBehaviour {
         } finally {
             GL.PopMatrix();
         }
+    }
+
+    // The map room's own sprite tint = Silksong's authored area colouring. Used by MapNavigation to colour the
+    // hover preview label to match the area it points at. Falls back to white when the room isn't found (map
+    // not built yet / non-loadable scene). Alpha forced opaque since the sprite may be mid-fade.
+    internal static Color AreaTint(string sceneName) {
+        if (active != null && active.scenes != null)
+            foreach (var (scene, sr) in active.scenes)
+                if (scene.name == sceneName)
+                    return sr.color with { a = 1f };
+        return Color.white;
     }
 
     private static void DrawRect(float x0, float y0, float x1, float y1) {

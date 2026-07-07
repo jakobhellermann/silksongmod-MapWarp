@@ -66,16 +66,18 @@ public class MapNavigation : MonoBehaviour {
             if (string.IsNullOrEmpty(room)) return;
 
             previewStyle ??= new GUIStyle(GUI.skin.label) {
-                fontSize = 13, fontStyle = FontStyle.Bold, padding = new RectOffset(5, 5, 3, 3),
-                normal = { textColor = new Color(0.6f, 1f, 0.6f) }
+                fontSize = 13, fontStyle = FontStyle.Bold, padding = new RectOffset(5, 5, 3, 3)
             };
+            // Tint the label with the room's own area colour (its map sprite tint).
+            previewStyle.normal.textColor = MapRoomBorders.AreaTint(room);
 
             var content = new GUIContent(room);
             var size = previewStyle.CalcSize(content);
             // Input.mousePosition (screen space, bottom-left origin) — absolute, so unlike
             // Event.current.mousePosition it isn't affected by GUI-matrix state between OnGUI passes.
             var mp = Input.mousePosition;
-            var rect = new Rect(mp.x + 16f, Screen.height - mp.y + 8f, size.x, size.y);
+            // Place the label up-left of the cursor (offset by its own size) so the cursor never covers it.
+            var rect = new Rect(mp.x - size.x, Screen.height - mp.y - size.y, size.x, size.y);
 
             var prev = GUI.color;
             GUI.color = new Color(0f, 0f, 0f, 0.65f);
