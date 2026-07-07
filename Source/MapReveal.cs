@@ -50,6 +50,20 @@ internal static class MapReveal {
         }
     }
 
+    // The "→ <Area>" next-area pointers hint at adjacent zones you haven't mapped yet. With the full map
+    // shown in the quick map, the target zone is already drawn behind them, so they're redundant clutter.
+    // They only ever appear in the quick map (display == isQuickMap), and SetDisplayNextArea fires this
+    // Refresh *after* our EnableUnlockedAreas postfix has forced everything mapped — so deactivating them
+    // in that postfix wouldn't stick. Force display off here instead.
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(MapNextAreaDisplay), "Refresh")]
+#pragma warning disable HARMONIZE001
+    // ReSharper disable once InconsistentNaming
+    private static void MapNextAreaDisplayRefresh(ref bool display) {
+#pragma warning restore HARMONIZE001
+        if (MapWarpPlugin.ShowFullMapInQuickmap.Value) display = false;
+    }
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(PlayerData), nameof(PlayerData.HasAnyMap), MethodType.Getter)]
     // ReSharper disable once InconsistentNaming
