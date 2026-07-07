@@ -1,7 +1,7 @@
 using System;
 using HarmonyLib;
 
-namespace BetterMapControls.Source;
+namespace MapWarp.Source;
 
 // Two independent map cheats, all gates bypassed (config-gated) here:
 //   UnlockEntireMap ("act as if the map is unlocked, even where you never went"):
@@ -13,7 +13,7 @@ namespace BetterMapControls.Source;
 //       SetupMap does NOT run on every open).
 [HarmonyPatch]
 internal static class MapReveal {
-    private static bool Enabled => BetterMapControlsPlugin.UnlockEntireMap.Value;
+    private static bool Enabled => MapWarpPlugin.UnlockEntireMap.Value;
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameMap), "EnableUnlockedAreas")]
@@ -22,7 +22,7 @@ internal static class MapReveal {
     private static void EnableUnlockedAreas(GameMap __instance) {
 #pragma warning restore HARMONIZE001
         // Showing all rooms (vs. UnlockEntireMap, which only unlocks access to the real map).
-        if (!BetterMapControlsPlugin.ShowFullMapInQuickmap.Value) return;
+        if (!MapWarpPlugin.ShowFullMapInQuickmap.Value) return;
         try {
             var scenes = __instance.GetComponentsInChildren<GameMapScene>(true);
             MapUtil.ActivateAllRooms(scenes, __instance.transform);

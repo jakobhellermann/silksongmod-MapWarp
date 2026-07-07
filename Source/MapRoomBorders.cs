@@ -4,7 +4,7 @@ using HarmonyLib;
 using JetBrains.Annotations;
 using UnityEngine;
 
-namespace BetterMapControls.Source;
+namespace MapWarp.Source;
 
 [RequireComponent(typeof(Camera))]
 public class MapRoomBorders : MonoBehaviour {
@@ -43,7 +43,7 @@ public class MapRoomBorders : MonoBehaviour {
 
     private void OnGUI() {
         try {
-            if (!BetterMapControlsPlugin.ShowRoomBorders.Value) return;
+            if (!MapWarpPlugin.ShowRoomBorders.Value) return;
             if (!cam || !cam.enabled || !cam.gameObject.activeInHierarchy) return;
             if (scenes == null) return;
 
@@ -87,7 +87,7 @@ public class MapRoomBorders : MonoBehaviour {
     }
 
     private void OnPostRender() {
-        if (!BetterMapControlsPlugin.ShowRoomBorders.Value) return;
+        if (!MapWarpPlugin.ShowRoomBorders.Value) return;
         if (!cam || !mat) return;
         if (scenes == null || scenes.Length == 0) return;
 

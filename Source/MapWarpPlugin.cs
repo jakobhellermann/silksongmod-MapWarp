@@ -4,11 +4,11 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 
-namespace BetterMapControls.Source;
+namespace MapWarp.Source;
 
-[BepInAutoPlugin("io.github.jakobhellermann.bettermapcontrols")]
+[BepInAutoPlugin("io.github.jakobhellermann.mapwarp")]
 [BepInDependency("io.github.jakobhellermann.devutils")]
-public partial class BetterMapControlsPlugin : BaseUnityPlugin {
+public partial class MapWarpPlugin : BaseUnityPlugin {
     internal static ConfigEntry<bool> EnableTeleport = null!;
     internal static ConfigEntry<bool> ShowRoomBorders = null!;
     internal static ConfigEntry<bool> ShowFullMapInQuickmap = null!;

@@ -8,7 +8,7 @@ namespace = "jakobhellermann"
 description = "Mouse controls for the Silksong map: scroll to zoom toward the cursor, drag to pan, right-click to teleport. Plus options to reveal the full map and outline rooms."
 
 # Replace this with a correct repo URL if the default is not accurate
-websiteUrl = "https://github.com/jakobhellermann/BetterMapControls"
+websiteUrl = "https://github.com/jakobhellermann/MapWarp"
 containsNsfwContent = false
 
 

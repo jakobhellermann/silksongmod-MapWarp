@@ -3,7 +3,7 @@ using HarmonyLib;
 using JetBrains.Annotations;
 using UnityEngine;
 
-namespace BetterMapControls.Source;
+namespace MapWarp.Source;
 
 [RequireComponent(typeof(Camera))]
 public class MapNavigation : MonoBehaviour {

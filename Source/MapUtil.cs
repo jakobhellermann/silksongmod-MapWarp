@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace BetterMapControls.Source;
+namespace MapWarp.Source;
 
 internal static class MapUtil {
     // Activate each given GameMapScene and its ancestor chain up to the GameMap root, so rooms the game left

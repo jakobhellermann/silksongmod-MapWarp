@@ -1,7 +1,7 @@
 using BepInEx.Logging;
 using JetBrains.Annotations;
 
-namespace BetterMapControls.Source;
+namespace MapWarp.Source;
 
 [PublicAPI]
 internal static class Log {

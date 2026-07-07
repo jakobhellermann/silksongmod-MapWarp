@@ -1,4 +1,4 @@
-# BetterMapControls
+# MapWarp
 
 Mouse controls and quality-of-life options for the Hollow Knight: Silksong map.
 
@@ -12,7 +12,7 @@ Mouse controls and quality-of-life options for the Hollow Knight: Silksong map.
 
 ## Config
 
-Editable in `BepInEx/config/io.github.jakobhellermann.bettermapcontrols.cfg` (or via a config-manager mod):
+Editable in `BepInEx/config/io.github.jakobhellermann.mapwarp.cfg` (or via a config-manager mod):
 
 - **RevealEntireMap** *(default off)* — show the whole map as fully explored: every room in every zone, even
   zones whose map you haven't acquired and rooms you haven't visited.

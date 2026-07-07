@@ -8,7 +8,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using Object = UnityEngine.Object;
 
-namespace BetterMapControls.Source;
+namespace MapWarp.Source;
 
 [HarmonyPatch]
 internal static class MapTeleport {
@@ -59,7 +59,7 @@ internal static class MapTeleport {
     }
 
     private static void HandleMap(GameMap gameMap) {
-        if (!BetterMapControlsPlugin.EnableTeleport.Value) {
+        if (!MapWarpPlugin.EnableTeleport.Value) {
             PreviewRoom = null;
             return;
         }
