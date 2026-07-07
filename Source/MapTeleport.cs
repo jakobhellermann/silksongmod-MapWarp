@@ -22,6 +22,12 @@ internal static class MapTeleport {
     private static Vector2 pendingNormalized;
     private static bool pendingExact;
 
+    // Safe hazard-respawn the last PlaceHero applied (null if no safe spot was found). For a cross-scene teleport
+    // PositionHeroAtSceneEntrance promotes this into pendingReapplyRespawn so it can be re-applied after
+    // FinishedEnteringScene re-anchors the respawn to the hero's landing position (see ReapplyHazardRespawnAfterEntry).
+    private static (Vector3 pos, bool facingRight)? lastSafeRespawn;
+    private static (Vector3 pos, bool facingRight)? pendingReapplyRespawn;
+
     // The room (loadable scene) currently under the cursor, updated every frame the map is open and drawn next
     // to the cursor by MapNavigation.OnGUI. Null when no map is open / no room is hovered.
     internal static string? PreviewRoom;
@@ -185,35 +191,70 @@ internal static class MapTeleport {
         pendingDreamGate = false;
         PlaceHero(new Vector2(pendingNormalized.x * __instance.GetSceneWidth(),
             pendingNormalized.y * __instance.GetSceneHeight()), pendingExact);
+
+        // A cross-scene teleport still runs FinishedEnteringScene after this, which re-anchors the hazard respawn to
+        // the hero's (possibly hazardous) landing position because it can't resolve the "dreamGate" entry gate.
+        // Queue the safe spot to be re-applied after that (ReapplyHazardRespawnAfterEntry).
+        pendingReapplyRespawn = lastSafeRespawn;
+    }
+
+    // Re-apply the safe hazard respawn after a cross-scene teleport. FinishedEnteringScene (run after
+    // PositionHeroAtSceneEntrance) sets the respawn to the hero's landing position when the entry gate is
+    // unresolved ("dreamGate"); if that landing is inside a hazard, the accepted single death would respawn back
+    // into it and loop, each respawn forcing a full blocking GC → the game grinds to ~1 fps. Overriding it here
+    // (postfix, so after that assignment) points the respawn at a known-safe spot instead.
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(HeroController), "FinishedEnteringScene")]
+#pragma warning disable HARMONIZE001
+    // ReSharper disable once InconsistentNaming
+    private static void ReapplyHazardRespawnAfterEntry(HeroController __instance) {
+#pragma warning restore HARMONIZE001
+        if (pendingReapplyRespawn is not { } respawn) return;
+        pendingReapplyRespawn = null;
+        __instance.SetHazardRespawn(respawn.pos, respawn.facingRight);
     }
 
     // Place the hero for a teleport: by default snap to the nearest guaranteed-safe spot (a transition point
     // or hazard-respawn marker) near the target; if exact (Shift) or none is found, drop onto the ground at
     // the target itself.
     private static void PlaceHero(Vector2 target, bool exact) {
-        if (exact || !PlaceAtNearestSafeSpot(target))
+        var hasSafeSpot = TryFindNearestSafeSpot(target, out var safeSpot);
+
+        // Anchor the hazard-respawn location to a known-safe spot before the hero can touch anything lethal, so a
+        // hazard death recovers after one respawn instead of looping (see ReapplyHazardRespawnAfterEntry for why a
+        // cross-scene teleport also needs a re-apply after FinishedEnteringScene).
+        var hero = HeroController.instance;
+        if (hasSafeSpot && hero != null) {
+            hero.SetHazardRespawn(safeSpot, hero.cState.facingRight);
+            lastSafeRespawn = (safeSpot, hero.cState.facingRight);
+        } else {
+            lastSafeRespawn = null;
+        }
+
+        if (exact || !hasSafeSpot)
             PlaceHeroOnGround(target);
+        else
+            PlaceHeroOnGround(safeSpot);
     }
 
     // Nearest transition / hazard-respawn marker to `target`, in the currently loaded scene — both are spots
     // the game itself spawns the hero at, so they're always on safe ground.
-    private static bool PlaceAtNearestSafeSpot(Vector2 target) {
+    private static bool TryFindNearestSafeSpot(Vector2 target, out Vector3 safeSpot) {
         var bestDist = float.MaxValue;
-        var best = Vector3.zero;
+        safeSpot = Vector3.zero;
         var found = false;
 
         foreach (var m in Object.FindObjectsByType<HazardRespawnMarker>(FindObjectsSortMode.None)) {
             var d = ((Vector2)m.transform.position - target).sqrMagnitude;
-            if (d < bestDist) (bestDist, best, found) = (d, m.transform.position, true);
+            if (d < bestDist) (bestDist, safeSpot, found) = (d, m.transform.position, true);
         }
 
         foreach (var tp in Object.FindObjectsByType<TransitionPoint>(FindObjectsSortMode.None)) {
             var pos = tp.respawnMarker != null ? tp.respawnMarker.transform.position : tp.transform.position;
             var d = ((Vector2)pos - target).sqrMagnitude;
-            if (d < bestDist) (bestDist, best, found) = (d, pos, true);
+            if (d < bestDist) (bestDist, safeSpot, found) = (d, pos, true);
         }
 
-        if (found) PlaceHeroOnGround(best);
         return found;
     }
 
