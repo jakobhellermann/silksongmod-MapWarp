@@ -7,11 +7,13 @@ namespace MapWarp.Source;
 // Two independent, config-gated map cheats
 //   UnlockEntireMap ("act as if the map is unlocked, even where you never went"):
 //     * PlayerData.HasAnyMap   — gates the map pane being available in the inventory at all.
-//     * ParentInfo.IsUnlocked  — gates whether a zone counts as unlocked
+//     * ParentInfo.IsUnlocked  — gates whether a zone counts as unlocked (open/pan without owning its map).
 //     * GameMap.IsLostInAbyss  — restrict the map to only the Abyss zone in the Abyss "lost" states.
+//     * GameMap.EnableUnlockedAreas postfix — SetMapped the shown zone's rooms so they render fully mapped
+//       instead of the rough "visited" sketch, even without the zone's map item or quill (see below).
 //   ShowFullMapInQuickmap ("in the quick map show the whole map, not just the current area"):
 //     * GameMap.EnableUnlockedAreas prefix  — widen the quick map's scope to every zone (see below).
-//     * GameMap.EnableUnlockedAreas postfix — force every room to its full mapped sprite (see below).
+//     * GameMap.EnableUnlockedAreas postfix — additionally reveal + map every zone's rooms (see below).
 [HarmonyPatch]
 internal static class MapReveal {
     private static bool Enabled => MapWarpPlugin.UnlockEntireMap.Value;
@@ -35,13 +37,22 @@ internal static class MapReveal {
     // ReSharper disable once InconsistentNaming
     private static void EnableUnlockedAreas(GameMap __instance) {
 #pragma warning restore HARMONIZE001
-        // Force every room to its full mapped sprite instead of the rough sketch (vs. UnlockEntireMap, which
-        // only unlocks access to the real map).
-        if (!MapWarpPlugin.ShowFullMapInQuickmap.Value) return;
+        // Force rooms to their full mapped sprite instead of the rough sketch. Without the zone's map item the
+        // game only ever renders visited rooms as Rough (SetupMap gates SetMapped on hasQuill/scenesMapped), so
+        // "act as if the map is unlocked" needs us to SetMapped here on every open.
+        //   * UnlockEntireMap: map the zones that EnableUnlockedAreas already made visible (the current zone in
+        //     the quick map, every unlocked zone on the world map) — keep the game's scope.
+        //   * ShowFullMapInQuickmap: additionally reveal every zone's rooms (widen the quick map's scope).
+        var showFull = MapWarpPlugin.ShowFullMapInQuickmap.Value;
+        if (!showFull && !Enabled) return;
         try {
             var scenes = __instance.GetComponentsInChildren<GameMapScene>(true);
-            MapUtil.ActivateAllRooms(scenes, __instance.transform);
+            if (showFull) MapUtil.ActivateAllRooms(scenes, __instance.transform);
             foreach (var scene in scenes) {
+                // Only map rooms whose zone is currently shown; skip zones EnableUnlockedAreas left hidden so
+                // UnlockEntireMap alone doesn't leak other zones into the quick map.
+                var parent = scene.transform.parent;
+                if (parent == null || !parent.gameObject.activeInHierarchy) continue;
                 scene.SetVisited();
                 scene.SetMapped();
             }
