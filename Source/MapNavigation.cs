@@ -42,7 +42,7 @@ public class MapNavigation : MonoBehaviour {
 
     private void Update() {
         try {
-            MapOpen = cam && cam.enabled && cam.gameObject.activeInHierarchy;
+            MapOpen = cam && cam is { enabled: true, gameObject.activeInHierarchy: true };
             if (!MapOpen) {
                 prevSize = -1f;
                 return;
