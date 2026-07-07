@@ -2,12 +2,12 @@ using System;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using MapWarp.Source.Toasts;
 using UnityEngine;
 
 namespace MapWarp.Source;
 
 [BepInAutoPlugin("io.github.jakobhellermann.mapwarp")]
-[BepInDependency("io.github.jakobhellermann.devutils")]
 public partial class MapWarpPlugin : BaseUnityPlugin {
     internal static ConfigEntry<bool> EnableTeleport = null!;
     internal static ConfigEntry<bool> ShowRoomBorders = null!;
@@ -32,6 +32,7 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
 
             harmony = Harmony.CreateAndPatchAll(GetType().Assembly);
             MapReveal.PatchUnlockGate(harmony);
+            ToastManager.Install();
 
             // Hot reload: the GameMap may already exist when the plugin (re)loads, so the Start/OnEnable patches
             // won't fire. Install directly in that case.
@@ -52,6 +53,8 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
                 Destroy(c);
             foreach (var c in FindObjectsByType<MapNavigation>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 Destroy(c);
+            foreach (var c in FindObjectsByType<ToastManager>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                Destroy(c.gameObject);
         } catch (Exception e) {
             Log.Info($"Plugin {Name} ({Id}) failed to clean up: {e}");
         }
