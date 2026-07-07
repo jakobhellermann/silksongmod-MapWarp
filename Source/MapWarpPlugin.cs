@@ -14,8 +14,12 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
     internal static ConfigEntry<bool> ShowFullMapInQuickmap = null!;
     internal static ConfigEntry<bool> UnlockEntireMap = null!;
     internal static ConfigEntry<bool> InstantMapOpen = null!;
+    internal static ConfigEntry<bool> ShowRespawnPoints = null!;
 
     private Harmony harmony = null!;
+
+    // Last scene captured into RespawnPoints, so Update only scans once per scene entry.
+    private string? lastCapturedScene;
 
     private void Awake() {
         Log.Init(Logger);
@@ -33,6 +37,8 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
             InstantMapOpen.SettingChanged += (_, _) => MapWarp.Source.InstantMapOpen.Apply();
             ShowRoomBorders = Config.Bind("Debug", "Show Room Borders", false,
                 "Outline each room on the map and label it with its scene name.");
+            ShowRespawnPoints = Config.Bind("Teleport", "Show respawn points", true,
+                "When hovering a room on the map, mark its safe respawn points (transition / hazard-respawn spots).");
 
             harmony = Harmony.CreateAndPatchAll(GetType().Assembly);
             MapReveal.PatchUnlockGate(harmony);
@@ -43,6 +49,27 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
             MapLifecycle.Dispatch();
         } catch (Exception e) {
             Log.Info($"Plugin {Name} ({Id}) failed to initialize: {e}");
+        }
+    }
+
+    // Record the safe respawn points of each scene as the player enters it, so hovering that room on the map
+    // later can mark them. Only runs until an offline dataset ships (both write the same file); harmless to keep.
+    private void Update() {
+        try {
+            var gm = GameManager.instance;
+            if (gm == null) return;
+            var scene = gm.sceneName;
+            if (string.IsNullOrEmpty(scene) || scene == lastCapturedScene) return;
+
+            // GetSceneWidth/Height are 0 until the destination tilemap is resolved; retry next frame until ready.
+            var w = gm.GetSceneWidth();
+            var h = gm.GetSceneHeight();
+            if (w <= 0f || h <= 0f) return;
+
+            lastCapturedScene = scene;
+            RespawnPoints.CaptureCurrentScene(scene, w, h);
+        } catch (Exception e) {
+            Log.Error(e);
         }
     }
 

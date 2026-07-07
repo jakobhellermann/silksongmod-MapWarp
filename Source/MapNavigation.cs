@@ -58,12 +58,15 @@ public class MapNavigation : MonoBehaviour {
 
     private void OnDisable() => MapOpen = false;
 
-    // Draw the teleport target (the room under the cursor, computed by MapTeleport) next to the cursor.
+    // Draw the teleport target (the room under the cursor, computed by MapTeleport) next to the cursor,
+    // plus the room's known safe respawn points as markers on its map sprite.
     private void OnGUI() {
         try {
             if (!cam || !cam.enabled || !cam.gameObject.activeInHierarchy) return;
             var room = MapTeleport.PreviewRoom;
             if (string.IsNullOrEmpty(room)) return;
+
+            DrawRespawnPoints(room!);
 
             previewStyle ??= new GUIStyle(GUI.skin.label) {
                 fontSize = 13, fontStyle = FontStyle.Bold, padding = new RectOffset(5, 5, 3, 3)
@@ -87,6 +90,35 @@ public class MapNavigation : MonoBehaviour {
         } catch (Exception e) {
             Log.Error(e);
         }
+    }
+
+    // Draw each known safe respawn point of the hovered room as a small marker on its map sprite. Positions are
+    // stored normalized [0,1] within the scene (RespawnPoints); MapTeleport.PreviewRoomBounds gives that room's
+    // world-space sprite bounds, so normalized -> world -> screen places them exactly over the room's map tile.
+    private void DrawRespawnPoints(string room) {
+        if (!MapWarpPlugin.ShowRespawnPoints.Value) return;
+        var points = RespawnPoints.Get(room);
+        if (points == null || points.Count == 0) return;
+
+        var b = MapTeleport.PreviewRoomBounds;
+        if (b.size.x <= 0f || b.size.y <= 0f) return;
+
+        const float s = 7f;
+        var prev = GUI.color;
+        foreach (var p in points) {
+            var world = new Vector3(b.min.x + p.x * b.size.x, b.min.y + p.y * b.size.y, 0f);
+            var sp = cam.WorldToScreenPoint(world);
+            if (sp.z < 0f) continue; // behind the camera
+            var rect = new Rect(sp.x - s / 2f, Screen.height - sp.y - s / 2f, s, s);
+
+            // Dark border for contrast against any map background, then a bright cyan dot.
+            GUI.color = new Color(0f, 0f, 0f, 0.85f);
+            GUI.DrawTexture(new Rect(rect.x - 1f, rect.y - 1f, s + 2f, s + 2f), Texture2D.whiteTexture);
+            GUI.color = new Color(0.3f, 1f, 1f, 0.95f);
+            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        }
+
+        GUI.color = prev;
     }
 
     // Reset pan/zoom to the camera's known defaults. Called when a map (world or quick) opens, so a map

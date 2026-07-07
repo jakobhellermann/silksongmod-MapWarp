@@ -32,6 +32,10 @@ internal static class MapTeleport {
     // to the cursor by MapNavigation.OnGUI. Null when no map is open / no room is hovered.
     internal static string? PreviewRoom;
 
+    // World-space sprite bounds of the hovered room (valid only while PreviewRoom != null). MapNavigation.OnGUI
+    // maps this room's normalized respawn points onto these bounds to draw them on the map.
+    internal static Bounds PreviewRoomBounds;
+
     private static readonly Dictionary<string, bool> loadableCache = new();
 
     internal static bool IsLoadableScene(string sceneName) {
@@ -81,10 +85,11 @@ internal static class MapTeleport {
         }
 
         var gm = GameManager.instance;
-        var hasRoom = TryGetRoomUnderCursor(mapCam, out var best, out var normalized);
+        var hasRoom = TryGetRoomUnderCursor(mapCam, out var best, out var normalized, out var bestBounds);
 
         // Update the cursor preview every frame (drawn by MapNavigation.OnGUI).
         PreviewRoom = hasRoom ? best.Name : null;
+        if (hasRoom) PreviewRoomBounds = bestBounds;
 
         // Left mouse is used for drag-panning (MapNavigation), so teleport is bound to a discrete right-click.
         if (!Input.GetMouseButtonDown(1)) return;
@@ -131,9 +136,11 @@ internal static class MapTeleport {
 
     // Map room whose on-screen sprite bounds contain the cursor; when several overlap, the one whose center
     // is closest to the cursor wins. Also returns the cursor's normalized [0,1] position within that room.
-    private static bool TryGetRoomUnderCursor(Camera mapCam, out GameMapScene best, out Vector2 normalized) {
+    private static bool TryGetRoomUnderCursor(Camera mapCam, out GameMapScene best, out Vector2 normalized,
+        out Bounds bounds) {
         best = null!;
         normalized = default;
+        bounds = default;
         var mouse = (Vector2)Input.mousePosition;
         var bestDist = float.MaxValue;
         Bounds bestBounds = default;
@@ -174,6 +181,7 @@ internal static class MapTeleport {
         normalized = new Vector2(
             Mathf.Clamp01((mouse.x - bsmin.x) / (bsmax.x - bsmin.x)),
             Mathf.Clamp01((mouse.y - bsmin.y) / (bsmax.y - bsmin.y)));
+        bounds = bestBounds;
         return true;
     }
 
