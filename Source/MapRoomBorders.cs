@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using HarmonyLib;
-using JetBrains.Annotations;
 using UnityEngine;
 
 namespace MapWarp.Source;
@@ -150,25 +148,5 @@ public class MapRoomBorders : MonoBehaviour {
         if (camGo == null) return;
         camGo.AddComponent<MapRoomBorders>();
         MapNavigation.Install();
-    }
-}
-
-[HarmonyPatch(typeof(GameMap), "Start")]
-internal static class MapRoomBordersPatchStart {
-#pragma warning disable HARMONIZE001
-    [UsedImplicitly]
-    private static void Postfix() {
-#pragma warning restore HARMONIZE001
-        MapRoomBorders.Install();
-    }
-}
-
-[HarmonyPatch(typeof(GameMap), "OnEnable")]
-internal static class MapRoomBordersPatchEnable {
-#pragma warning disable HARMONIZE001
-    [UsedImplicitly]
-    private static void Postfix() {
-#pragma warning restore HARMONIZE001
-        MapRoomBorders.Install();
     }
 }

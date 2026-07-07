@@ -38,10 +38,9 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
             MapReveal.PatchUnlockGate(harmony);
             ToastManager.Install();
 
-            // Hot reload: the GameMap may already exist when the plugin (re)loads, so the Start/OnEnable patches
-            // won't fire. Install directly in that case.
-            if (FindFirstObjectByType<GameMap>() != null)
-                MapRoomBorders.Install();
+            // Hot reload: the GameMap may already exist when the plugin (re)loads, so MapLifecycle's Start/
+            // OnEnable patches won't fire. Dispatch directly (each handler is a no-op when no map is present).
+            MapLifecycle.Dispatch();
         } catch (Exception e) {
             Log.Info($"Plugin {Name} ({Id}) failed to initialize: {e}");
         }

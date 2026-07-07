@@ -1,9 +1,7 @@
 using System;
 using System.Linq;
-using HarmonyLib;
 using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
-using JetBrains.Annotations;
 using UnityEngine;
 
 namespace MapWarp.Source;
@@ -17,19 +15,11 @@ namespace MapWarp.Source;
 // is off. This is the least invasive hook: no global PlayMaker action patch (Wait is shared by every FSM in
 // the game) and no per-frame work — PlayMaker never resets action fields at runtime, so setting them sticks.
 // Both actions short-circuit cleanly at 0: Wait fires FINISHED immediately, FadeTo snaps to the target alpha.
-[HarmonyPatch]
+// Apply() is driven by MapLifecycle (on GameMap init) and by the config's SettingChanged.
 internal static class InstantMapOpen {
     private static bool captured;
     private static float origWait;
     private static float origFade;
-
-    // Re-apply when the map system comes up (fresh game load from the menu creates a new FSM instance).
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(GameMap), "OnEnable")]
-#pragma warning disable HARMONIZE001
-    [UsedImplicitly]
-    private static void GameMapOnEnable() => Apply();
-#pragma warning restore HARMONIZE001
 
     internal static void Apply() {
         try {
@@ -57,10 +47,7 @@ internal static class InstantMapOpen {
         }
     }
 
-    // Not a patch target — a plain helper the analyzer can't tell apart in a [HarmonyPatch] class.
-#pragma warning disable HARMONIZE004
     private static T? FindAction<T>(PlayMakerFSM fsm, string stateName) where T : FsmStateAction {
-#pragma warning restore HARMONIZE004
         var state = fsm.FsmStates.FirstOrDefault(s => s.Name == stateName);
         return state?.Actions.OfType<T>().FirstOrDefault();
     }
