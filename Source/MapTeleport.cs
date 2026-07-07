@@ -150,8 +150,10 @@ internal static class MapTeleport {
             var sr = scene.GetComponent<SpriteRenderer>();
             if (sr == null || sr.sprite == null) continue;
 
-            var smin = mapCam.WorldToScreenPoint(sr.bounds.min);
-            var smax = mapCam.WorldToScreenPoint(sr.bounds.max);
+            // Letterbox-corrected on-screen pixels (bottom-left, matching Input.mousePosition) — plain
+            // WorldToScreenPoint returns render-texture pixels and misaligns under black bars (see MapUtil).
+            var smin = MapUtil.WorldToScreen(mapCam, sr.bounds.min);
+            var smax = MapUtil.WorldToScreen(mapCam, sr.bounds.max);
             float xMin = Mathf.Min(smin.x, smax.x), xMax = Mathf.Max(smin.x, smax.x);
             float yMin = Mathf.Min(smin.y, smax.y), yMax = Mathf.Max(smin.y, smax.y);
 
@@ -164,7 +166,7 @@ internal static class MapTeleport {
             if (!IsLoadableScene(scene.Name)) continue;
 
             // Among overlapping matches, pick the one whose center is nearest the cursor.
-            var center = (Vector2)mapCam.WorldToScreenPoint(sr.bounds.center);
+            var center = MapUtil.WorldToScreen(mapCam, sr.bounds.center);
             var dist = (center - mouse).sqrMagnitude;
             if (dist < bestDist) {
                 bestDist = dist;
@@ -176,8 +178,8 @@ internal static class MapTeleport {
         // ReSharper disable once CompareOfFloatsByEqualityOperator
         if (bestDist == float.MaxValue) return false;
 
-        var bsmin = mapCam.WorldToScreenPoint(bestBounds.min);
-        var bsmax = mapCam.WorldToScreenPoint(bestBounds.max);
+        var bsmin = MapUtil.WorldToScreen(mapCam, bestBounds.min);
+        var bsmax = MapUtil.WorldToScreen(mapCam, bestBounds.max);
         normalized = new Vector2(
             Mathf.Clamp01((mouse.x - bsmin.x) / (bsmax.x - bsmin.x)),
             Mathf.Clamp01((mouse.y - bsmin.y) / (bsmax.y - bsmin.y)));

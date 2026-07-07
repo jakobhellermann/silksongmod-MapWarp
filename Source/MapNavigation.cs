@@ -107,9 +107,10 @@ public class MapNavigation : MonoBehaviour {
         var prev = GUI.color;
         foreach (var p in points) {
             var world = new Vector3(b.min.x + p.x * b.size.x, b.min.y + p.y * b.size.y, 0f);
-            var sp = cam.WorldToScreenPoint(world);
-            if (sp.z < 0f) continue; // behind the camera
-            var rect = new Rect(sp.x - s / 2f, Screen.height - sp.y - s / 2f, s, s);
+            // Letterbox-corrected (see MapUtil.WorldToGui) — cam.WorldToScreenPoint returns render-texture
+            // pixels, which drift from the on-screen map when the window aspect adds black bars.
+            var g = MapUtil.WorldToGui(cam, world);
+            var rect = new Rect(g.x - s / 2f, g.y - s / 2f, s, s);
 
             // Dark border for contrast against any map background, then a bright cyan dot.
             GUI.color = new Color(0f, 0f, 0f, 0.85f);
