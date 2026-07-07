@@ -13,6 +13,7 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
     internal static ConfigEntry<bool> ShowRoomBorders = null!;
     internal static ConfigEntry<bool> ShowFullMapInQuickmap = null!;
     internal static ConfigEntry<bool> UnlockEntireMap = null!;
+    internal static ConfigEntry<bool> InstantMapOpen = null!;
 
     private Harmony harmony = null!;
 
@@ -27,6 +28,9 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
                 "Open and pan the whole map even in zones you haven't acquired it for.");
             ShowFullMapInQuickmap = Config.Bind("Map", "Show full map in quickmap", false,
                 "Show the entire map instead of the current area in quickmap");
+            InstantMapOpen = Config.Bind("Map", "Instant map open", true,
+                "Open the quick map instantly instead of playing its ~0.45s open/fade-in animation.");
+            InstantMapOpen.SettingChanged += (_, _) => MapWarp.Source.InstantMapOpen.Apply();
             ShowRoomBorders = Config.Bind("Debug", "Show Room Borders", false,
                 "Outline each room on the map and label it with its scene name.");
 
