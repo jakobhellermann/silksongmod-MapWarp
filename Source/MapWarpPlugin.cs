@@ -22,11 +22,11 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
 
         try {
             EnableTeleport = Config.Bind("Teleport", "Enable teleport", true,
-                "Right-click a room on the map to warp there (nearest safe spot; hold Shift for the exact spot).");
+                "Right-click a room on the map to warp to the the nearest safe spot (hold Shift exact spot.)");
             ShowRoomBorders = Config.Bind("Map", "Show Room Borders", true,
                 "Outline each room on the map and label it with its scene name.");
             ShowFullMapInQuickmap = Config.Bind("Map", "Show full map in quickmap", false,
-                "Display every room fully mapped, including ones you haven't explored yet.");
+                "Show the entire map instead of the current area in quickmap");
             UnlockEntireMap = Config.Bind("Map", "Unlock entire map", false,
                 "Open and pan the whole map even in zones you haven't acquired it for.");
 

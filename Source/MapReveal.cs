@@ -1,19 +1,33 @@
 using System;
+using GlobalEnums;
 using HarmonyLib;
 
 namespace MapWarp.Source;
 
-// Two independent map cheats, all gates bypassed (config-gated) here:
+// Two independent, config-gated map cheats
 //   UnlockEntireMap ("act as if the map is unlocked, even where you never went"):
 //     * PlayerData.HasAnyMap   — gates the map pane being available in the inventory at all.
-//     * ParentInfo.IsUnlocked  — gates opening the quick map and which zones' areas get enabled.
-//     * GameMap.IsLostInAbyss* — restrict the map to only the Abyss zone in the Abyss "lost" states.
-//   ShowFullMapInQuickmap ("actually show every room, including unexplored ones"):
-//     * GameMap.EnableUnlockedAreas postfix — activate + force-map every room (the reliable per-open event;
-//       SetupMap does NOT run on every open).
+//     * ParentInfo.IsUnlocked  — gates whether a zone counts as unlocked
+//     * GameMap.IsLostInAbyss  — restrict the map to only the Abyss zone in the Abyss "lost" states.
+//   ShowFullMapInQuickmap ("in the quick map show the whole map, not just the current area"):
+//     * GameMap.EnableUnlockedAreas prefix  — widen the quick map's scope to every zone (see below).
+//     * GameMap.EnableUnlockedAreas postfix — force every room to its full mapped sprite (see below).
 [HarmonyPatch]
 internal static class MapReveal {
     private static bool Enabled => MapWarpPlugin.UnlockEntireMap.Value;
+
+    // EnableUnlockedAreas activates a zone iff (zone.IsUnlocked && zone == setCurrent-or-all): the quick map
+    // (single Tab) passes the current zone as setCurrent, the world map (double Tab) passes null for "all".
+    // Nulling setCurrent makes the quick map show every unlocked zone, like the world map. Scale/position are
+    // set in TryOpenQuickMap, not here, so they stay centred on the current zone.
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(GameMap), "EnableUnlockedAreas")]
+#pragma warning disable HARMONIZE001
+    // ReSharper disable once InconsistentNaming
+    private static void EnableUnlockedAreasPrefix(ref MapZone? setCurrent) {
+#pragma warning restore HARMONIZE001
+        if (MapWarpPlugin.ShowFullMapInQuickmap.Value) setCurrent = null;
+    }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameMap), "EnableUnlockedAreas")]
@@ -21,7 +35,8 @@ internal static class MapReveal {
     // ReSharper disable once InconsistentNaming
     private static void EnableUnlockedAreas(GameMap __instance) {
 #pragma warning restore HARMONIZE001
-        // Showing all rooms (vs. UnlockEntireMap, which only unlocks access to the real map).
+        // Force every room to its full mapped sprite instead of the rough sketch (vs. UnlockEntireMap, which
+        // only unlocks access to the real map).
         if (!MapWarpPlugin.ShowFullMapInQuickmap.Value) return;
         try {
             var scenes = __instance.GetComponentsInChildren<GameMapScene>(true);
