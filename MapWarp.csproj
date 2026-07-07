@@ -63,6 +63,8 @@
         <Folder Remove="thunderstore/temp;thunderstore/dist"/>
         <None Include="README.md" Pack="True" PackagePath="README.md"/>
         <None Include="thunderstore/icon.png" Pack="True" PackagePath="icon.png"/>
+        <!-- Offline-generated respawn points for every room (tools/extract_respawns.sh). -->
+        <EmbeddedResource Include="mapwarp_respawns.json"/>
     </ItemGroup>
 
     <Target Name="CopyAndPackageMod" AfterTargets="PostBuildEvent">

@@ -12,51 +12,66 @@ namespace MapWarp.Source;
 // within the scene — the same convention MapTeleport uses (world = normalized * sceneSize). The map hover draws
 // these on the hovered room's sprite.
 //
-// The full dataset is meant to be generated offline (all rooms, even unvisited ones) into
-// `BepInEx/config/mapwarp_respawns.json`; until then CaptureCurrentScene fills in rooms as the player visits
-// them (which also validates the coordinate math against the live markers). Both write the same file/format.
+// The full dataset is generated offline for every room and embedded as `mapwarp_respawns.json` (see
+// `tools/extract_respawns.sh`). A file at `BepInEx/config/mapwarp_respawns.json` overrides/augments it, and
+// CaptureCurrentScene records any scene missing from the embedded set as the player enters it (a safety net for
+// game updates before the data is regenerated). Format: `{ "Scene_01": [[nx, ny], ...] }`.
 internal static class RespawnPoints {
-    // sceneName -> normalized [0,1] positions.
+    private const string ResourceName = "mapwarp_respawns.json";
+
+    // Merged view (embedded base with config overrides on top), used by Get.
     private static readonly Dictionary<string, List<Vector2>> Data = new();
+    // Only the entries persisted to the config file (overrides + runtime-captured scenes).
+    private static readonly Dictionary<string, List<Vector2>> Overrides = new();
     private static bool loaded;
 
-    private static string FilePath => Path.Combine(Paths.ConfigPath, "mapwarp_respawns.json");
+    private static string OverridePath => Path.Combine(Paths.ConfigPath, ResourceName);
 
-    // JSON shape: { "Scene_01": [[0.5, 0.2], [0.9, 0.5]], ... }
     private static void EnsureLoaded() {
         if (loaded) return;
         loaded = true;
         try {
-            if (!File.Exists(FilePath)) return;
-            var raw = JsonConvert.DeserializeObject<Dictionary<string, List<float[]>>>(File.ReadAllText(FilePath));
-            if (raw == null) return;
-            foreach (var (scene, pts) in raw) {
-                var list = new List<Vector2>(pts.Count);
-                foreach (var p in pts)
-                    if (p.Length >= 2)
-                        list.Add(new Vector2(p[0], p[1]));
-                Data[scene] = list;
-            }
+            var embedded = LoadEmbedded();
+            foreach (var (scene, pts) in embedded) Data[scene] = pts;
 
-            Log.Info($"Loaded respawn points for {Data.Count} scenes");
+            if (File.Exists(OverridePath))
+                foreach (var (scene, pts) in Parse(File.ReadAllText(OverridePath))) {
+                    Overrides[scene] = pts;
+                    Data[scene] = pts;
+                }
+
+            Log.Info($"Respawn points: {embedded.Count} embedded scenes, {Overrides.Count} overrides");
         } catch (Exception e) {
             Log.Error(e);
         }
     }
 
-    private static void Save() {
-        try {
-            var raw = new Dictionary<string, List<float[]>>(Data.Count);
-            foreach (var (scene, pts) in Data) {
-                var list = new List<float[]>(pts.Count);
-                foreach (var p in pts) list.Add(new[] { p.x, p.y });
-                raw[scene] = list;
-            }
+    // The embedded dataset shipped in the DLL. Matched by suffix so the exact resource namespace doesn't matter.
+    private static Dictionary<string, List<Vector2>> LoadEmbedded() {
+        var asm = typeof(RespawnPoints).Assembly;
+        var name = Array.Find(asm.GetManifestResourceNames(),
+            n => n.EndsWith(ResourceName, StringComparison.Ordinal));
+        if (name == null) return new Dictionary<string, List<Vector2>>();
 
-            File.WriteAllText(FilePath, JsonConvert.SerializeObject(raw));
-        } catch (Exception e) {
-            Log.Error(e);
+        using var stream = asm.GetManifestResourceStream(name);
+        if (stream == null) return new Dictionary<string, List<Vector2>>();
+        using var reader = new StreamReader(stream);
+        return Parse(reader.ReadToEnd());
+    }
+
+    private static Dictionary<string, List<Vector2>> Parse(string json) {
+        var result = new Dictionary<string, List<Vector2>>();
+        var raw = JsonConvert.DeserializeObject<Dictionary<string, List<float[]>>>(json);
+        if (raw == null) return result;
+        foreach (var (scene, pts) in raw) {
+            var list = new List<Vector2>(pts.Count);
+            foreach (var p in pts)
+                if (p.Length >= 2)
+                    list.Add(new Vector2(p[0], p[1]));
+            result[scene] = list;
         }
+
+        return result;
     }
 
     internal static IReadOnlyList<Vector2>? Get(string scene) {
@@ -64,12 +79,13 @@ internal static class RespawnPoints {
         return Data.TryGetValue(scene, out var list) ? list : null;
     }
 
-    // Scan the currently loaded scene for safe respawn spots and record them (normalized by the scene size).
-    // Mirrors MapTeleport.PlaceAtNearestSafeSpot: every HazardRespawnMarker plus each TransitionPoint's respawn
-    // position. Deduplicated because a TransitionPoint's respawnMarker is usually itself a HazardRespawnMarker.
+    // Record the current scene's safe respawn spots — but only when it's missing from the loaded data, so the
+    // embedded dataset stays authoritative and we don't rescan every visited room. Mirrors
+    // MapTeleport.PlaceAtNearestSafeSpot: every HazardRespawnMarker plus each TransitionPoint's respawn position,
+    // deduplicated (a TransitionPoint's respawnMarker is usually itself a HazardRespawnMarker).
     internal static void CaptureCurrentScene(string scene, float width, float height) {
         EnsureLoaded();
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0 || Data.ContainsKey(scene)) return;
 
         // Dedup in world space, rounded to whole units, so overlapping markers collapse to one.
         var seen = new HashSet<(int, int)>();
@@ -92,6 +108,22 @@ internal static class RespawnPoints {
         if (points.Count == 0) return;
 
         Data[scene] = points;
-        Save();
+        Overrides[scene] = points;
+        SaveOverrides();
+    }
+
+    private static void SaveOverrides() {
+        try {
+            var raw = new Dictionary<string, List<float[]>>(Overrides.Count);
+            foreach (var (scene, pts) in Overrides) {
+                var list = new List<float[]>(pts.Count);
+                foreach (var p in pts) list.Add(new[] { p.x, p.y });
+                raw[scene] = list;
+            }
+
+            File.WriteAllText(OverridePath, JsonConvert.SerializeObject(raw));
+        } catch (Exception e) {
+            Log.Error(e);
+        }
     }
 }
