@@ -5,6 +5,8 @@
 Right-click anywhere on the map to warp there, plus mouse controls and quality-of-life options for
 the map.
 
+<p align="center"><img src="docs/demo.png" alt="MapWarp demo" width="640"></p>
+
 ## Features
 
 - **Zoom & pan** — scroll to zoom toward the cursor, click-drag to pan. Works on both the world map and the
