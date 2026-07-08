@@ -136,7 +136,6 @@ internal static class MapTeleport {
         if (targetScene == gm.sceneName) {
             var sceneSize = currentSceneSize(gameMap);
             PlaceHero(new Vector2(normalized.x * sceneSize.x, normalized.y * sceneSize.y), exact);
-            ToastManager.Toast($"Teleported within {targetScene}");
             return;
         }
 
@@ -158,7 +157,6 @@ internal static class MapTeleport {
             PreventCameraFadeOut = true,
             WaitForSceneTransitionCameraFade = false
         });
-        ToastManager.Toast($"Teleporting to {targetScene}");
     }
 
     // Map room whose on-screen sprite bounds contain the cursor; when several overlap, the one whose nearest
