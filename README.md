@@ -30,6 +30,8 @@ Editable in `BepInEx/config/io.github.jakobhellermann.mapwarp.cfg` (or via
 - **Show full map in quickmap** *(default off)* — show the entire map instead of just the current area in the
   quickmap.
 - **Instant map open** *(default on)* — open the quick map instantly instead of waiting for the open animation.
+- **Always show compass** *(default off)* — always show your position on the map, as if the Compass tool were
+  equipped.
 
 **Debug**
 

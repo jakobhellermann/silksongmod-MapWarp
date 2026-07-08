@@ -15,6 +15,7 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
     internal static ConfigEntry<bool> UnlockEntireMap = null!;
     internal static ConfigEntry<bool> InstantMapOpen = null!;
     internal static ConfigEntry<bool> ShowRespawnPoints = null!;
+    internal static ConfigEntry<bool> AlwaysCompass = null!;
 
     private Harmony harmony = null!;
 
@@ -36,6 +37,8 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
                 "Outline each room on the map and label it with its scene name.");
             ShowRespawnPoints = Config.Bind("Teleport", "Show respawn points", true,
                 "When hovering a room on the map, mark its safe respawn points (transition / hazard-respawn spots).");
+            AlwaysCompass = Config.Bind("Map", "Always show compass", false,
+                "Always show your position on the map, as if the Compass tool were equipped.");
 
             harmony = Harmony.CreateAndPatchAll(GetType().Assembly);
             MapReveal.PatchUnlockGate(harmony);
