@@ -14,6 +14,10 @@ public class MapRoomBorders : MonoBehaviour {
     private Material mat = null!;
     private (GameMapScene scene, SpriteRenderer sr)[]? scenes;
 
+    // A fixed, generously-sized rect for each room label — see OnGUI for why we don't fit it with CalcSize.
+    private const float LabelWidth = 220f;
+    private const float LabelHeight = 22f;
+
     private void Awake() {
         cam = GetComponent<Camera>();
         mat = new Material(Shader.Find("Hidden/Internal-Colored")) {
@@ -56,14 +60,20 @@ public class MapRoomBorders : MonoBehaviour {
                 // Only rooms the map is actually showing — with "full map in quickmap" off the game leaves other
                 // zones' rooms inactive, so this keeps the overlay in sync instead of boxing every room.
                 if (!sr.gameObject.activeInHierarchy) continue;
-                var vp = cam.WorldToViewportPoint(sr.bounds.center);
-                if (vp.z < 0 || vp.x < 0 || vp.x > 1 || vp.y < 0 || vp.y > 1) continue;
-                // Label at the room's top-left corner, letterbox-corrected (see MapUtil.WorldToGui).
+                // Draw the label whenever the box overlaps the viewport (same test as the box in OnPostRender),
+                // not only when the room center is on-screen — otherwise labels pop in/out while panning.
+                var min = cam.WorldToViewportPoint(sr.bounds.min);
+                var max = cam.WorldToViewportPoint(sr.bounds.max);
+                if (max.x < 0 || min.x > 1 || max.y < 0 || min.y > 1) continue;
+                // Label at the room's top-left corner, letterbox-corrected (see MapUtil.WorldToGui). GUI.Label
+                // clips to its rect and CalcSize under-measures the width by ~1px — enough to cut a trailing wide
+                // glyph (the 'b' of "Tut_01b" rendered as "Tut_01"). So skip the tight fit and hand it a
+                // generously wide rect; the unused space is invisible. Pinned on-screen so it stays while panning.
                 var guiPos = MapUtil.WorldToGui(cam,
                     new Vector3(sr.bounds.min.x, sr.bounds.max.y, sr.bounds.center.z));
-                var label = new GUIContent(scene.name);
-                var size = GUI.skin.label.CalcSize(label);
-                GUI.Label(new Rect(guiPos.x, guiPos.y, size.x, size.y), label);
+                var x = Mathf.Clamp(guiPos.x, 0f, Screen.width - LabelWidth);
+                var y = Mathf.Clamp(guiPos.y, 0f, Screen.height - LabelHeight);
+                GUI.Label(new Rect(x, y, LabelWidth, LabelHeight), scene.name);
             }
         } catch (Exception e) {
             Log.Error(e);
