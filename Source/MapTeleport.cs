@@ -244,9 +244,10 @@ internal static class MapTeleport {
         __instance.SetHazardRespawn(respawn.pos, respawn.facingRight);
     }
 
-    // Place the hero for a teleport: by default snap to the nearest guaranteed-safe spot (a transition point
-    // or hazard-respawn marker) near the target; if exact (Shift) or none is found, drop onto the ground at
-    // the target itself.
+    // Place the hero for a teleport: by default snap to the nearest guaranteed-safe spot (a transition point or
+    // hazard-respawn marker) near the target, or ground-snap the target when the scene has none. Exact (Shift)
+    // drops the hero precisely at the clicked position instead — no ground snap, so it may land inside terrain
+    // or a hazard (the hazard respawn below still anchors a safe recovery spot).
     private static void PlaceHero(Vector2 target, bool exact) {
         var hasSafeSpot = TryFindNearestSafeSpot(target, out var safeSpot);
 
@@ -254,17 +255,20 @@ internal static class MapTeleport {
         // hazard death recovers after one respawn instead of looping (see ReapplyHazardRespawnAfterEntry for why a
         // cross-scene teleport also needs a re-apply after FinishedEnteringScene).
         var hero = HeroController.instance;
-        if (hasSafeSpot && hero != null) {
+        if (hero == null) return;
+        if (hasSafeSpot) {
             hero.SetHazardRespawn(safeSpot, hero.cState.facingRight);
             lastSafeRespawn = (safeSpot, hero.cState.facingRight);
         } else {
             lastSafeRespawn = null;
         }
 
-        if (exact || !hasSafeSpot)
-            PlaceHeroOnGround(target);
-        else
+        if (exact)
+            hero.transform.position = new Vector3(target.x, target.y, hero.transform.position.z);
+        else if (hasSafeSpot)
             PlaceHeroOnGround(safeSpot);
+        else
+            PlaceHeroOnGround(target);
     }
 
     // Nearest transition / hazard-respawn marker to `target`, in the currently loaded scene — both are spots
