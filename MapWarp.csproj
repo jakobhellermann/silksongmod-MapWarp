@@ -66,8 +66,8 @@
         <None Include="README.md" Pack="True" PackagePath="README.md"/>
         <None Include="thunderstore/icon.png" Pack="True" PackagePath="icon.png"/>
         <!-- Offline-generated map data for every room (tools/extract_respawns.sh). -->
-        <EmbeddedResource Include="mapwarp_respawns.json"/>
-        <EmbeddedResource Include="mapwarp_scene_sizes.json"/>
+        <EmbeddedResource Include="data/mapwarp_respawns.json"/>
+        <EmbeddedResource Include="data/mapwarp_scene_sizes.json"/>
     </ItemGroup>
 
     <Target Name="CopyAndPackageMod" AfterTargets="PostBuildEvent">

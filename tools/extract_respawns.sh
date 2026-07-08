@@ -14,8 +14,8 @@ set -euo pipefail
 GAME="${1:-silksong}"
 RABEX="${RABEX:-rabex}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$ROOT/mapwarp_respawns.json"
-OUT_SIZES="$ROOT/mapwarp_scene_sizes.json"
+OUT="$ROOT/data/mapwarp_respawns.json"
+OUT_SIZES="$ROOT/data/mapwarp_scene_sizes.json"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
