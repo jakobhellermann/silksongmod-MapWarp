@@ -33,7 +33,7 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
             ShowFullMapInQuickmap = Config.Bind("Map", "Show full map in quickmap", false,
                 "Show the entire map instead of the current area in quickmap");
             InstantMapOpen = Config.Bind("Map", "Instant map open", true,
-                "Open the quick map instantly instead of playing its ~0.45s open/fade-in animation.");
+                "Open the quick map instantly instead of waiting for the open animation.");
             InstantMapOpen.SettingChanged += (_, _) => MapWarp.Source.InstantMapOpen.Apply();
             ShowRoomBorders = Config.Bind("Debug", "Show Room Borders", false,
                 "Outline each room on the map and label it with its scene name.");
