@@ -44,6 +44,11 @@ internal static class MapTeleport {
 
     private static readonly Dictionary<string, bool> loadableCache = new();
 
+    // Shift-to-exact teleport is disabled for now: at overlapping room boxes the nearest-respawn-point selection
+    // can resolve to the wrong scene, so an exact click lands out of bounds there. The default (snap to nearest
+    // safe spot) is unaffected. Re-enable once scene selection is pixel-accurate (see the sprite-coverage idea).
+    private const bool ExactTeleportEnabled = false;
+
     internal static bool IsLoadableScene(string sceneName) {
         if (loadableCache.TryGetValue(sceneName, out var cached)) return cached;
 
@@ -106,7 +111,8 @@ internal static class MapTeleport {
         // The preview target is the raw clicked position, i.e. where a Shift teleport lands (a default teleport
         // snaps to the nearest safe spot instead). Only show it while Shift is held so it isn't misleading.
         // world = normalized * the room's embedded scene size, matching exactly where the teleport lands.
-        var showTarget = hasRoom && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
+        var showTarget = ExactTeleportEnabled && hasRoom &&
+                         (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
         PreviewTarget = showTarget && SceneSizes.Get(best.Name) is { } size
             ? $"{normalized.x * size.x:0}, {normalized.y * size.y:0}"
             : null;
@@ -123,7 +129,8 @@ internal static class MapTeleport {
 
         // Default lands at the nearest safe spot (transition / hazard-respawn marker) to the click; holding
         // Shift teleports to the exact clicked position instead (which may be inside terrain or hazards).
-        var exact = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        var exact = ExactTeleportEnabled &&
+                    (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
 
         var targetScene = best.Name;
         if (targetScene == gm.sceneName) {
