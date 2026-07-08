@@ -66,7 +66,7 @@ public class MapNavigation : MonoBehaviour {
             var room = MapTeleport.PreviewRoom;
             if (string.IsNullOrEmpty(room)) return;
 
-            DrawRespawnPoints(room!);
+            DrawRespawnPoints();
 
             previewStyle ??= new GUIStyle(GUI.skin.label) {
                 fontSize = 13, fontStyle = FontStyle.Bold, padding = new RectOffset(5, 5, 3, 3), richText = true
@@ -94,25 +94,26 @@ public class MapNavigation : MonoBehaviour {
         }
     }
 
-    // Positions are stored normalized [0,1] within the scene (RespawnPoints); MapTeleport.PreviewRoomBounds gives
-    // that room's world-space sprite bounds, so normalized -> world -> screen places them over the room's map tile.
-    private void DrawRespawnPoints(string room) {
+    // Mark the safe respawn points of every room currently under the cursor (MapTeleport.PreviewCandidates) — so
+    // where room boxes overlap you see all of their spots, not just the selected room's. Points are stored
+    // normalized [0,1] within a scene; each room's own map-sprite bounds map normalized -> world -> screen.
+    private void DrawRespawnPoints() {
         if (!MapWarpPlugin.ShowRespawnPoints.Value) return;
-        var points = RespawnPoints.Get(room);
-        if (points == null || points.Count == 0) return;
-
-        var b = MapTeleport.PreviewRoomBounds;
-        if (b.size.x <= 0f || b.size.y <= 0f) return;
 
         const float s = 12f;
         var prev = GUI.color;
         GUI.color = Color.white;
-        foreach (var p in points) {
-            var world = new Vector3(b.min.x + p.x * b.size.x, b.min.y + p.y * b.size.y, 0f);
-            // Letterbox-corrected (see MapUtil.WorldToGui) — cam.WorldToScreenPoint returns render-texture
-            // pixels, which drift from the on-screen map when the window aspect adds black bars.
-            var g = MapUtil.WorldToGui(cam, world);
-            GUI.DrawTexture(new Rect(g.x - s / 2f, g.y - s / 2f, s, s), DiamondTexture);
+        foreach (var (room, b) in MapTeleport.PreviewCandidates) {
+            if (b.size.x <= 0f || b.size.y <= 0f) continue;
+            var points = RespawnPoints.Get(room);
+            if (points == null) continue;
+            foreach (var p in points) {
+                var world = new Vector3(b.min.x + p.x * b.size.x, b.min.y + p.y * b.size.y, 0f);
+                // Letterbox-corrected (see MapUtil.WorldToGui) — cam.WorldToScreenPoint returns render-texture
+                // pixels, which drift from the on-screen map when the window aspect adds black bars.
+                var g = MapUtil.WorldToGui(cam, world);
+                GUI.DrawTexture(new Rect(g.x - s / 2f, g.y - s / 2f, s, s), DiamondTexture);
+            }
         }
 
         GUI.color = prev;

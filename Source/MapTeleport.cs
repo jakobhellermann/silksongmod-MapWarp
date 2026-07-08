@@ -32,13 +32,14 @@ internal static class MapTeleport {
     // to the cursor by MapNavigation.OnGUI. Null when no map is open / no room is hovered.
     internal static string? PreviewRoom;
 
-    // World-space sprite bounds of the hovered room (valid only while PreviewRoom != null). MapNavigation.OnGUI
-    // maps this room's normalized respawn points onto these bounds to draw them on the map.
-    internal static Bounds PreviewRoomBounds;
+    // Every loadable room whose box currently contains the cursor, with its map-sprite bounds — usually one, but
+    // several where room boxes overlap. MapNavigation draws the respawn points of all of them (not just the
+    // selected room), so you can see every safe spot at an overlap. Reused list, refilled each frame.
+    internal static readonly List<(string room, Bounds bounds)> PreviewCandidates = new();
 
-    // The teleport target under the cursor, shown by MapNavigation.OnGUI under the room name. Game-unit world
-    // coordinates when the hovered room is the current scene (size known), else the normalized [0,1] position as
-    // a percentage — the destination scene's size isn't known until it loads. Null when no room is hovered.
+    // The teleport target under the cursor, shown by MapNavigation.OnGUI under the room name: the clicked
+    // position in game-unit world coordinates (normalized × the room's embedded scene size). Null when no room
+    // is hovered or the room has no embedded size.
     internal static string? PreviewTarget;
 
     private static readonly Dictionary<string, bool> loadableCache = new();
@@ -68,14 +69,21 @@ internal static class MapTeleport {
         try {
             HandleMap(__instance);
         } catch (Exception e) {
-            PreviewRoom = null;
+            ClearPreview();
             Log.Error(e);
         }
     }
 
+    // Reset the per-frame cursor preview state (no map open / no room hovered).
+    private static void ClearPreview() {
+        PreviewRoom = null;
+        PreviewTarget = null;
+        PreviewCandidates.Clear();
+    }
+
     private static void HandleMap(GameMap gameMap) {
         if (!MapWarpPlugin.EnableTeleport.Value) {
-            PreviewRoom = null;
+            ClearPreview();
             return;
         }
 
@@ -85,16 +93,15 @@ internal static class MapTeleport {
         var mapCamGo = gameMap.gameObject.activeInHierarchy ? GameObject.Find("Map Camera") : null;
         var mapCam = mapCamGo != null ? mapCamGo.GetComponent<Camera>() : null;
         if (mapCam == null || !mapCam.isActiveAndEnabled) {
-            PreviewRoom = null;
+            ClearPreview();
             return;
         }
 
         var gm = GameManager.instance;
-        var hasRoom = TryGetRoomUnderCursor(mapCam, out var best, out var normalized, out var bestBounds);
+        var hasRoom = TryGetRoomUnderCursor(mapCam, out var best, out var normalized);
 
         // Update the cursor preview every frame (drawn by MapNavigation.OnGUI).
         PreviewRoom = hasRoom ? best.Name : null;
-        if (hasRoom) PreviewRoomBounds = bestBounds;
 
         // The preview target is the raw clicked position, i.e. where a Shift teleport lands (a default teleport
         // snaps to the nearest safe spot instead). Only show it while Shift is held so it isn't misleading.
@@ -150,11 +157,10 @@ internal static class MapTeleport {
     // Map room whose on-screen sprite bounds contain the cursor; when several overlap, the one whose nearest
     // respawn point is closest to the cursor wins (see SceneCursorScore). Also returns the cursor's normalized
     // [0,1] position within that room.
-    private static bool TryGetRoomUnderCursor(Camera mapCam, out GameMapScene best, out Vector2 normalized,
-        out Bounds bounds) {
+    private static bool TryGetRoomUnderCursor(Camera mapCam, out GameMapScene best, out Vector2 normalized) {
         best = null!;
         normalized = default;
-        bounds = default;
+        PreviewCandidates.Clear();
         var mouse = (Vector2)Input.mousePosition;
         var bestDist = float.MaxValue;
         Bounds bestBounds = default;
@@ -179,6 +185,8 @@ internal static class MapTeleport {
             // scene's own GameMapScene also makes the normalized position cover the whole room correctly.
             if (!IsLoadableScene(scene.Name)) continue;
 
+            PreviewCandidates.Add((scene.Name, sr.bounds));
+
             // Among overlapping matches, pick the one whose content is nearest the cursor (SceneCursorScore).
             var dist = SceneCursorScore(mapCam, scene.Name, sr.bounds, mouse);
             if (dist < bestDist) {
@@ -196,7 +204,6 @@ internal static class MapTeleport {
         normalized = new Vector2(
             Mathf.Clamp01((mouse.x - bsmin.x) / (bsmax.x - bsmin.x)),
             Mathf.Clamp01((mouse.y - bsmin.y) / (bsmax.y - bsmin.y)));
-        bounds = bestBounds;
         return true;
     }
 
