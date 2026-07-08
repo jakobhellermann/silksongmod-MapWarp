@@ -102,22 +102,47 @@ public class MapNavigation : MonoBehaviour {
         var b = MapTeleport.PreviewRoomBounds;
         if (b.size.x <= 0f || b.size.y <= 0f) return;
 
-        const float s = 7f;
+        const float s = 12f;
         var prev = GUI.color;
+        GUI.color = Color.white;
         foreach (var p in points) {
             var world = new Vector3(b.min.x + p.x * b.size.x, b.min.y + p.y * b.size.y, 0f);
             // Letterbox-corrected (see MapUtil.WorldToGui) — cam.WorldToScreenPoint returns render-texture
             // pixels, which drift from the on-screen map when the window aspect adds black bars.
             var g = MapUtil.WorldToGui(cam, world);
-            var rect = new Rect(g.x - s / 2f, g.y - s / 2f, s, s);
-
-            GUI.color = new Color(0f, 0f, 0f, 0.85f);
-            GUI.DrawTexture(new Rect(rect.x - 1f, rect.y - 1f, s + 2f, s + 2f), Texture2D.whiteTexture);
-            GUI.color = new Color(0.3f, 1f, 1f, 0.95f);
-            GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(g.x - s / 2f, g.y - s / 2f, s, s), DiamondTexture);
         }
 
         GUI.color = prev;
+    }
+
+    // Diamond marker (dark border + teal fill) baked into one texture. Border width is measured as the
+    // perpendicular distance to the fill edge, so it stays uniform along all four sides (a scaled second
+    // diamond would bulge at the tips). Built once.
+    private static Texture2D DiamondTexture => field ??= BuildDiamond(24, borderPx: 3f);
+
+    private static Texture2D BuildDiamond(int size, float borderPx) {
+        var fill = new Color(0.55f, 0.82f, 0.78f, 0.95f);
+        var border = new Color(0f, 0f, 0f, 0.8f);
+        const float sqrt2 = 1.4142136f;
+
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var c = (size - 1) / 2f;
+        var fillR = c - borderPx * sqrt2; // Manhattan radius of the fill; tips reach the texture edge at c.
+        var px = new Color[size * size];
+        for (var y = 0; y < size; y++)
+        for (var x = 0; x < size; x++) {
+            // Perpendicular pixels past the fill edge (negative = inside fill).
+            var dp = (Mathf.Abs(x - c) + Mathf.Abs(y - c) - fillR) / sqrt2;
+            var fillCov = Mathf.Clamp01(0.5f - dp);          // 1 inside fill, AA across ~1px
+            var outerCov = Mathf.Clamp01(0.5f - (dp - borderPx)); // fill + border silhouette
+            var rgb = Color.Lerp(border, fill, fillCov);
+            px[y * size + x] = new Color(rgb.r, rgb.g, rgb.b, outerCov * Mathf.Lerp(border.a, fill.a, fillCov));
+        }
+
+        tex.SetPixels(px);
+        tex.Apply();
+        return tex;
     }
 
     // Reset pan/zoom to the camera's known defaults. Called when a map (world or quick) opens, so a map
