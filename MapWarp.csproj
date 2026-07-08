@@ -23,7 +23,7 @@
 
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
-        <RepositoryUrl>https://github.com/jakobhellermann/MapWarp</RepositoryUrl>
+        <RepositoryUrl>https://github.com/jakobhellermann/silksongmod-MapWarp</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>

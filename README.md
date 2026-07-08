@@ -1,11 +1,11 @@
-<p align="center"><img src="thunderstore/icon.png" alt="MapWarp icon" width="128"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/jakobhellermann/silksongmod-MapWarp/main/thunderstore/icon.png" alt="MapWarp icon" width="128"></p>
 
 # MapWarp
 
 Right-click anywhere on the map to warp there, plus mouse controls and quality-of-life options for
 the map.
 
-<p align="center"><img src="docs/demo.png" alt="MapWarp demo" width="640"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/jakobhellermann/silksongmod-MapWarp/main/docs/demo.png" alt="MapWarp demo" width="640"></p>
 
 ## Features
 
