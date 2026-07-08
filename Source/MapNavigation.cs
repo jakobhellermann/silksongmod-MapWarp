@@ -92,9 +92,8 @@ public class MapNavigation : MonoBehaviour {
         }
     }
 
-    // Draw each known safe respawn point of the hovered room as a small marker on its map sprite. Positions are
-    // stored normalized [0,1] within the scene (RespawnPoints); MapTeleport.PreviewRoomBounds gives that room's
-    // world-space sprite bounds, so normalized -> world -> screen places them exactly over the room's map tile.
+    // Positions are stored normalized [0,1] within the scene (RespawnPoints); MapTeleport.PreviewRoomBounds gives
+    // that room's world-space sprite bounds, so normalized -> world -> screen places them over the room's map tile.
     private void DrawRespawnPoints(string room) {
         if (!MapWarpPlugin.ShowRespawnPoints.Value) return;
         var points = RespawnPoints.Get(room);
@@ -112,7 +111,6 @@ public class MapNavigation : MonoBehaviour {
             var g = MapUtil.WorldToGui(cam, world);
             var rect = new Rect(g.x - s / 2f, g.y - s / 2f, s, s);
 
-            // Dark border for contrast against any map background, then a bright cyan dot.
             GUI.color = new Color(0f, 0f, 0f, 0.85f);
             GUI.DrawTexture(new Rect(rect.x - 1f, rect.y - 1f, s + 2f, s + 2f), Texture2D.whiteTexture);
             GUI.color = new Color(0.3f, 1f, 1f, 0.95f);

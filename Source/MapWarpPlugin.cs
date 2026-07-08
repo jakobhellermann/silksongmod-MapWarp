@@ -18,9 +18,6 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
 
     private Harmony harmony = null!;
 
-    // Last scene captured into RespawnPoints, so Update only scans once per scene entry.
-    private string? lastCapturedScene;
-
     private void Awake() {
         Log.Init(Logger);
         Log.Info($"Plugin {Name} ({Id}) has loaded!");
@@ -49,27 +46,6 @@ public partial class MapWarpPlugin : BaseUnityPlugin {
             MapLifecycle.Dispatch();
         } catch (Exception e) {
             Log.Info($"Plugin {Name} ({Id}) failed to initialize: {e}");
-        }
-    }
-
-    // Record the safe respawn points of each scene as the player enters it, so hovering that room on the map
-    // later can mark them. Only runs until an offline dataset ships (both write the same file); harmless to keep.
-    private void Update() {
-        try {
-            var gm = GameManager.instance;
-            if (gm == null) return;
-            var scene = gm.sceneName;
-            if (string.IsNullOrEmpty(scene) || scene == lastCapturedScene) return;
-
-            // GetSceneWidth/Height are 0 until the destination tilemap is resolved; retry next frame until ready.
-            var w = gm.GetSceneWidth();
-            var h = gm.GetSceneHeight();
-            if (w <= 0f || h <= 0f) return;
-
-            lastCapturedScene = scene;
-            RespawnPoints.CaptureCurrentScene(scene, w, h);
-        } catch (Exception e) {
-            Log.Error(e);
         }
     }
 
