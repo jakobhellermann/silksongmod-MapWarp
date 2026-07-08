@@ -11,7 +11,9 @@
         <EnableNETAnalyzers>True</EnableNETAnalyzers>
         <AnalysisMode>recommended</AnalysisMode>
         <!-- Ignore warning about processor architecture mismatch with PlayMaker ConditionalExpression -->
-        <NoWarn>$(NoWarn);MSB3270</NoWarn>
+        <!-- Harmony003 ("non-ref patch parameter modified") false-fires on plain struct member reads in helper
+             methods that live in a [HarmonyPatch] class but aren't patches themselves. -->
+        <NoWarn>$(NoWarn);MSB3270;Harmony003</NoWarn>
 
         <RestorePackagesWithLockFile>True</RestorePackagesWithLockFile>
         <RestoreLockedMode Condition="'$(CI)' == 'true'">True</RestoreLockedMode>

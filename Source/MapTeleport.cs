@@ -134,8 +134,9 @@ internal static class MapTeleport {
         ToastManager.Toast($"Teleporting to {targetScene}");
     }
 
-    // Map room whose on-screen sprite bounds contain the cursor; when several overlap, the one whose center
-    // is closest to the cursor wins. Also returns the cursor's normalized [0,1] position within that room.
+    // Map room whose on-screen sprite bounds contain the cursor; when several overlap, the one whose nearest
+    // respawn point is closest to the cursor wins (see SceneCursorScore). Also returns the cursor's normalized
+    // [0,1] position within that room.
     private static bool TryGetRoomUnderCursor(Camera mapCam, out GameMapScene best, out Vector2 normalized,
         out Bounds bounds) {
         best = null!;
@@ -165,9 +166,8 @@ internal static class MapTeleport {
             // scene's own GameMapScene also makes the normalized position cover the whole room correctly.
             if (!IsLoadableScene(scene.Name)) continue;
 
-            // Among overlapping matches, pick the one whose center is nearest the cursor.
-            var center = MapUtil.WorldToScreen(mapCam, sr.bounds.center);
-            var dist = (center - mouse).sqrMagnitude;
+            // Among overlapping matches, pick the one whose content is nearest the cursor (SceneCursorScore).
+            var dist = SceneCursorScore(mapCam, scene.Name, sr.bounds, mouse);
             if (dist < bestDist) {
                 bestDist = dist;
                 best = scene;
@@ -185,6 +185,26 @@ internal static class MapTeleport {
             Mathf.Clamp01((mouse.y - bsmin.y) / (bsmax.y - bsmin.y)));
         bounds = bestBounds;
         return true;
+    }
+
+    // Screen-space (squared) distance from the cursor to the scene's nearest respawn point — concrete in-room
+    // locations, so a smaller value means the cursor is over that scene's actual content. This disambiguates
+    // overlapping room boxes better than the box center. Falls back to the box-center distance for scenes with
+    // no respawn points; both are screen-pixel sqrMagnitudes, so they're comparable across scenes.
+    private static float SceneCursorScore(Camera mapCam, string scene, Bounds worldBounds, Vector2 mouse) {
+        var points = RespawnPoints.Get(scene);
+        if (points == null || points.Count == 0)
+            return (MapUtil.WorldToScreen(mapCam, worldBounds.center) - mouse).sqrMagnitude;
+
+        var best = float.MaxValue;
+        foreach (var p in points) {
+            var world = new Vector3(worldBounds.min.x + p.x * worldBounds.size.x,
+                worldBounds.min.y + p.y * worldBounds.size.y, worldBounds.center.z);
+            var d = (MapUtil.WorldToScreen(mapCam, world) - mouse).sqrMagnitude;
+            if (d < best) best = d;
+        }
+
+        return best;
     }
 
     // dreamGate enters the scene at a raw position resolved by PositionHeroAtSceneEntrance (vanilla can't resolve the
