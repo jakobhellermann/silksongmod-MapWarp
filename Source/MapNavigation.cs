@@ -69,12 +69,14 @@ public class MapNavigation : MonoBehaviour {
             DrawRespawnPoints(room!);
 
             previewStyle ??= new GUIStyle(GUI.skin.label) {
-                fontSize = 13, fontStyle = FontStyle.Bold, padding = new RectOffset(5, 5, 3, 3)
+                fontSize = 13, fontStyle = FontStyle.Bold, padding = new RectOffset(5, 5, 3, 3), richText = true
             };
             // Tint the label with the room's own area colour (its map sprite tint).
             previewStyle.normal.textColor = MapRoomBorders.AreaTint(room);
 
-            var content = new GUIContent(room);
+            // Room name, with the exact teleport target on a smaller second line below it.
+            var target = MapTeleport.PreviewTarget;
+            var content = new GUIContent(string.IsNullOrEmpty(target) ? room : $"{room}\n<size=11>{target}</size>");
             var size = previewStyle.CalcSize(content);
             // Input.mousePosition (screen space, bottom-left origin) — absolute, so unlike
             // Event.current.mousePosition it isn't affected by GUI-matrix state between OnGUI passes.

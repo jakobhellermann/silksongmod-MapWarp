@@ -36,6 +36,11 @@ internal static class MapTeleport {
     // maps this room's normalized respawn points onto these bounds to draw them on the map.
     internal static Bounds PreviewRoomBounds;
 
+    // The teleport target under the cursor, shown by MapNavigation.OnGUI under the room name. Game-unit world
+    // coordinates when the hovered room is the current scene (size known), else the normalized [0,1] position as
+    // a percentage — the destination scene's size isn't known until it loads. Null when no room is hovered.
+    internal static string? PreviewTarget;
+
     private static readonly Dictionary<string, bool> loadableCache = new();
 
     internal static bool IsLoadableScene(string sceneName) {
@@ -90,6 +95,14 @@ internal static class MapTeleport {
         // Update the cursor preview every frame (drawn by MapNavigation.OnGUI).
         PreviewRoom = hasRoom ? best.Name : null;
         if (hasRoom) PreviewRoomBounds = bestBounds;
+
+        // The preview target is the raw clicked position, i.e. where a Shift teleport lands (a default teleport
+        // snaps to the nearest safe spot instead). Only show it while Shift is held so it isn't misleading.
+        // world = normalized * the room's embedded scene size, matching exactly where the teleport lands.
+        var showTarget = hasRoom && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
+        PreviewTarget = showTarget && SceneSizes.Get(best.Name) is { } size
+            ? $"{normalized.x * size.x:0}, {normalized.y * size.y:0}"
+            : null;
 
         // Left mouse is used for drag-panning (MapNavigation), so teleport is bound to a discrete right-click.
         if (!Input.GetMouseButtonDown(1)) return;
