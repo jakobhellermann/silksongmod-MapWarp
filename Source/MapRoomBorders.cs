@@ -53,6 +53,9 @@ public class MapRoomBorders : MonoBehaviour {
             if (cam.orthographicSize > MapNavigation.DefaultOrthoSize) return;
 
             foreach (var (scene, sr) in scenes) {
+                // Only rooms the map is actually showing — with "full map in quickmap" off the game leaves other
+                // zones' rooms inactive, so this keeps the overlay in sync instead of boxing every room.
+                if (!sr.gameObject.activeInHierarchy) continue;
                 var vp = cam.WorldToViewportPoint(sr.bounds.center);
                 if (vp.z < 0 || vp.x < 0 || vp.x > 1 || vp.y < 0 || vp.y > 1) continue;
                 // Label at the room's top-left corner, letterbox-corrected (see MapUtil.WorldToGui).
@@ -80,6 +83,7 @@ public class MapRoomBorders : MonoBehaviour {
             GL.Begin(GL.LINES);
             try {
                 foreach (var (scene, sr) in scenes) {
+                    if (!sr.gameObject.activeInHierarchy) continue;
                     var b = sr.bounds;
                     var min = cam.WorldToViewportPoint(b.min);
                     var max = cam.WorldToViewportPoint(b.max);
