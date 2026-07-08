@@ -5,10 +5,10 @@ schemaVersion = "0.0.1"
 # The name of the team you are publishing as
 namespace = "jakobhellermann"
 # max 250 characters
-description = "Mouse controls for the Silksong map: scroll to zoom toward the cursor, drag to pan, right-click to teleport. Plus options to reveal the full map and outline rooms."
+description = "Right-click anywhere on the map to warp there, with pan/zoom mouse controls. Plus options to reveal the full map, always show compass and outline rooms."
 
 # Replace this with a correct repo URL if the default is not accurate
-websiteUrl = "https://github.com/jakobhellermann/MapWarp"
+websiteUrl = "https://github.com/jakobhellermann/silksongmod-MapWarp"
 containsNsfwContent = false
 
 
