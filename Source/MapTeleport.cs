@@ -171,26 +171,35 @@ internal static class MapTeleport {
         var mapGo = GameObject.Find("_GameCameras/HudCamera/In-game/Inventory/Map");
         if (mapGo == null) return;
 
-        // During world map warp, the wide map is disabled and ZoomOut never runs during the TP. Restore it manually.
-        var mapManager = mapGo.GetComponent<InventoryMapManager>();
-        var wideMap = mapGo.GetComponentInChildren<InventoryWideMap>(true);
-        if (mapManager != null && wideMap != null) {
-            wideMap.FadeGroup.AlphaSelf = 1f;
-            var offset = wideMap.PositionOffset;
-            wideMap.transform.localScale = wideMapInitialScale(mapManager);
-            wideMap.transform.localPosition = new Vector3(offset.x, offset.y, wideMap.transform.localPosition.z);
-        }
-        if (mapGo.GetComponentInParent<InventoryPaneList>() is { } paneList) paneList.CanSwitchPanes = true;
-
-        // A normal close sends PANE RESET to the current (map) pane; the forced close below sends it to the wrong
-        // pane, so reset the map pane's UI FSM ourselves.
+        // A normal close sends PANE RESET to the current (map) pane; the forced close below sends it to the wrong one.
         PlayMakerFSM.FindFsmOnGameObject(mapGo, "UI Control")?.SendEvent("PANE RESET");
 
-        // Restore Time.timeScale and disablePause
+        // Restore Time.timeScale and disablePause.
+        // INVENTORY CANCEL leaves Do Not Close set, so fix that.
+        // This leaves the map in an invalid zoom configuration, but that is fixed on next open to prevent
+        // showing the wide map mid tp.
         if (PlayMakerFSM.FindFsmOnGameObject(mapGo.transform.parent.gameObject, "Inventory Control") is { } inventoryControl) {
             inventoryControl.FsmVariables.GetFsmBool("Do Not Close").Value = false;
             inventoryControl.SendEvent("INVENTORY CANCEL");
         }
+    }
+
+    // Warping may close map while it is zoomed in, leaving the wide map faded out and scaled to the zoom pose (ZoomOut never called)
+    // Heal it on the next open, before the map is shown.
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(InventoryMapManager), "OnPaneStart")]
+#pragma warning disable HARMONIZE001
+    // ReSharper disable once InconsistentNaming
+    private static void ResetWideMapPose(InventoryMapManager __instance) {
+#pragma warning restore HARMONIZE001
+        var wideMap = __instance.GetComponentInChildren<InventoryWideMap>(true);
+        if (wideMap != null) {
+            wideMap.FadeGroup.AlphaSelf = 1f;
+            var offset = wideMap.PositionOffset;
+            wideMap.transform.localScale = wideMapInitialScale(__instance);
+            wideMap.transform.localPosition = new Vector3(offset.x, offset.y, wideMap.transform.localPosition.z);
+        }
+        if (__instance.GetComponentInParent<InventoryPaneList>() is { } paneList) paneList.CanSwitchPanes = true;
     }
 
     // Map room whose on-screen sprite bounds contain the cursor; when several overlap, the one whose nearest
