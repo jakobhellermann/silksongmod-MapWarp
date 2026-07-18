@@ -134,6 +134,7 @@ internal static class MapTeleport {
 
         var targetScene = best.Name;
         if (targetScene == gm.sceneName) {
+            CloseInventoryMap();
             var sceneSize = currentSceneSize(gameMap);
             PlaceHero(new Vector2(normalized.x * sceneSize.x, normalized.y * sceneSize.y), exact);
             return;
@@ -143,6 +144,8 @@ internal static class MapTeleport {
             ToastManager.Toast($"Can't teleport: scene '{targetScene}' is not loaded");
             return;
         }
+
+        CloseInventoryMap();
 
         pendingDreamGate = true;
         pendingNormalized = normalized;
@@ -157,6 +160,37 @@ internal static class MapTeleport {
             PreventCameraFadeOut = true,
             WaitForSceneTransitionCameraFade = false
         });
+    }
+
+    private static readonly AccessTools.FieldRef<InventoryMapManager, Vector3> wideMapInitialScale =
+        AccessTools.FieldRefAccess<InventoryMapManager, Vector3>("zoneMapInitialScale");
+
+    private static void CloseInventoryMap() {
+        if (PlayerData.instance == null || !PlayerData.instance.isInventoryOpen) return;
+
+        var mapGo = GameObject.Find("_GameCameras/HudCamera/In-game/Inventory/Map");
+        if (mapGo == null) return;
+
+        // During world map warp, the wide map is disabled and ZoomOut never runs during the TP. Restore it manually.
+        var mapManager = mapGo.GetComponent<InventoryMapManager>();
+        var wideMap = mapGo.GetComponentInChildren<InventoryWideMap>(true);
+        if (mapManager != null && wideMap != null) {
+            wideMap.FadeGroup.AlphaSelf = 1f;
+            var offset = wideMap.PositionOffset;
+            wideMap.transform.localScale = wideMapInitialScale(mapManager);
+            wideMap.transform.localPosition = new Vector3(offset.x, offset.y, wideMap.transform.localPosition.z);
+        }
+        if (mapGo.GetComponentInParent<InventoryPaneList>() is { } paneList) paneList.CanSwitchPanes = true;
+
+        // A normal close sends PANE RESET to the current (map) pane; the forced close below sends it to the wrong
+        // pane, so reset the map pane's UI FSM ourselves.
+        PlayMakerFSM.FindFsmOnGameObject(mapGo, "UI Control")?.SendEvent("PANE RESET");
+
+        // Restore Time.timeScale and disablePause
+        if (PlayMakerFSM.FindFsmOnGameObject(mapGo.transform.parent.gameObject, "Inventory Control") is { } inventoryControl) {
+            inventoryControl.FsmVariables.GetFsmBool("Do Not Close").Value = false;
+            inventoryControl.SendEvent("INVENTORY CANCEL");
+        }
     }
 
     // Map room whose on-screen sprite bounds contain the cursor; when several overlap, the one whose nearest
