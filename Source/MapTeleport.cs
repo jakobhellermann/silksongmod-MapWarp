@@ -64,6 +64,9 @@ internal static class MapTeleport {
         return loadable;
     }
 
+    // The live GameMap, refreshed each frame from its own Update; read by MapNavigation.
+    internal static GameMap? Current;
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameMap), "Update")]
 #pragma warning disable HARMONIZE001
@@ -72,6 +75,7 @@ internal static class MapTeleport {
 #pragma warning restore HARMONIZE001
         // Runs every frame on the game's GameMap.Update — guard so an exception can't break it.
         try {
+            Current = __instance;
             HandleMap(__instance);
         } catch (Exception e) {
             ClearPreview();

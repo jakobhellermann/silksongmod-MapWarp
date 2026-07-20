@@ -10,6 +10,10 @@ public class MapNavigation : MonoBehaviour {
     private const float ZoomSpeed = 0.15f;
     private const float MinSize = 1f;
     private const float MaxSize = 30f;
+    // Map localScale bounds for the zoomed (scene map) view, where zoom scales the map instead of the camera.
+    // Floor at the game's smallest zoom scale so you can't zoom out past its default view.
+    private static readonly float MinScale = InventoryMapManager.SceneMapStartScale.x;
+    private const float MaxScale = 8f;
 
     // The Map Camera's (and Decorator Camera's) default orthographic size, from the persistent GameCameras
     // rig. Both cameras sit at localPosition (0,0,0); the game pans/zooms by transforming the GameMap object,
@@ -23,6 +27,7 @@ public class MapNavigation : MonoBehaviour {
     private Camera? decoratorCam;
     private bool dragging;
     private Vector3 dragOrigin;
+    private Vector3 dragMapLocal;
     private GUIStyle? previewStyle;
     private float prevSize = -1f;
 
@@ -48,9 +53,14 @@ public class MapNavigation : MonoBehaviour {
                 return;
             }
 
-            HandleDrag();
-            HandleZoom();
-            AnchorZoomToCursor();
+            // The zoomed scene map when it's big enough to pan, else null (wide map fits on screen). We pan/zoom
+            // this instead of the camera so the camera stays at the default pose the game's marker code assumes.
+            var map = MapTeleport.Current;
+            var pannable = map != null && map.CanStartPan() ? map : null;
+
+            HandleDrag(pannable);
+            HandleZoom(pannable);
+            AnchorZoomToCursor(pannable);
         } catch (Exception e) {
             Log.Error(e);
         }
@@ -174,9 +184,10 @@ public class MapNavigation : MonoBehaviour {
         return cam.ViewportToWorldPoint(viewport);
     }
 
-    private void HandleDrag() {
+    private void HandleDrag(GameMap? map) {
         if (Input.GetMouseButtonDown(0)) {
             dragOrigin = MouseWorldPoint();
+            if (map != null) dragMapLocal = map.transform.localPosition;
             dragging = true;
         }
 
@@ -187,22 +198,60 @@ public class MapNavigation : MonoBehaviour {
 
         if (!dragging) return;
         var current = MouseWorldPoint();
+
+        if (map != null) {
+            // Move the map (camera fixed) via the game's own UpdateMapPosition; absolute from the grab anchor.
+            var localDelta = map.transform.parent.InverseTransformVector(current - dragOrigin);
+            map.UpdateMapPosition(new Vector2(dragMapLocal.x + localDelta.x, dragMapLocal.y + localDelta.y));
+            return;
+        }
+
         var delta = dragOrigin - current;
         cam.transform.position += delta;
         if (decoratorCam) decoratorCam!.transform.position += delta;
     }
 
-    private void HandleZoom() {
+    private void HandleZoom(GameMap? map) {
         var scroll = Input.mouseScrollDelta.y;
         if (scroll == 0) return;
+
+        if (map != null) {
+            // Zoom by scaling the map (camera fixed), composing on the game's own zoom scale.
+            var t = map.transform;
+            var cursorWorld = MouseWorldPoint();
+            var pivotLocal = t.InverseTransformPoint(cursorWorld);
+            var s = Mathf.Clamp(t.localScale.x * (1f + scroll * ZoomSpeed), MinScale, MaxScale);
+            t.localScale = new Vector3(s, s, t.localScale.z);
+            // Reposition so the map point under the cursor stays put.
+            var worldShift = cursorWorld - t.TransformPoint(pivotLocal);
+            var localShift = t.parent.InverseTransformVector(worldShift);
+            map.UpdateMapPosition(new Vector2(t.localPosition.x + localShift.x, t.localPosition.y + localShift.y));
+            return;
+        }
+
         cam.orthographicSize = Mathf.Clamp(cam.orthographicSize * (1f - scroll * ZoomSpeed), MinSize, MaxSize);
     }
 
-    // Keep the world point under the cursor fixed across ANY orthographicSize change this frame — whoever
-    // caused it (our scroll wheel, or the game's own zoom smoothing that keeps driving the size between frames).
-    // Working off the per-frame size delta instead of our own scroll value makes this immune to that external
-    // driver. Skipped while dragging, which moves the camera deliberately and doesn't touch the size.
-    private void AnchorZoomToCursor() {
+    // Wide-map (camera-ortho) zoom only: keep the point under the cursor fixed across any orthographicSize change
+    // this frame — ours or the game's zoom smoothing. Works off the per-frame size delta so it's immune to that
+    // external driver. Skipped while dragging (which moves the camera and doesn't touch the size).
+    private void AnchorZoomToCursor(GameMap? map) {
+        // Zoomed view scales the map, not the camera — force the camera back to its default pose (which marker
+        // placement assumes, clearing any leftover wide-map pan/zoom) and skip the camera anchor.
+        if (map != null) {
+            if (!Mathf.Approximately(cam.orthographicSize, DefaultOrthoSize) ||
+                cam.transform.localPosition != Vector3.zero) {
+                cam.orthographicSize = DefaultOrthoSize;
+                cam.transform.localPosition = Vector3.zero;
+                if (decoratorCam != null) {
+                    decoratorCam.orthographicSize = DefaultOrthoSize;
+                    decoratorCam.transform.localPosition = Vector3.zero;
+                }
+            }
+            prevSize = DefaultOrthoSize;
+            return;
+        }
+
         var size = cam.orthographicSize;
         if (decoratorCam) decoratorCam!.orthographicSize = size;
 
