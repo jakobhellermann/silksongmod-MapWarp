@@ -7,6 +7,9 @@ the full map, always show compass and outline rooms.
 
 <p align="center"><img src="https://raw.githubusercontent.com/jakobhellermann/silksongmod-MapWarp/main/docs/demo.png" alt="MapWarp demo" width="640"></p>
 
+> [!TIP]
+> A Hollow Knight version is available at <https://github.com/jakobhellermann/hkmod-MapWarp>
+
 ## Features
 
 - **Zoom & pan**: scroll to zoom toward the cursor, click-drag to pan.
