@@ -26,7 +26,7 @@ public class MapRoomBorders : MonoBehaviour {
     }
 
     private void OnEnable() {
-        gameMap = FindFirstObjectByType<GameMap>();
+        gameMap = GameManager.instance.gameMap;
         if (gameMap == null) return;
 
         var raw = gameMap.GetComponentsInChildren<GameMapScene>(true);

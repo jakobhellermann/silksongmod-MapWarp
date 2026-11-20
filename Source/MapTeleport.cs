@@ -5,7 +5,6 @@ using GlobalEnums;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.ResourceProviders;
 using Object = UnityEngine.Object;
 
 namespace MapWarp.Source;
@@ -42,7 +41,7 @@ internal static class MapTeleport {
     // is hovered or the room has no embedded size.
     internal static string? PreviewTarget;
 
-    private static readonly Dictionary<string, bool> loadableCache = new();
+    private static HashSet<object>? addressableKeys;
 
     // Shift-to-exact teleport is disabled for now: at overlapping room boxes the nearest-respawn-point selection
     // can resolve to the wrong scene, so an exact click lands out of bounds there. The default (snap to nearest
@@ -50,18 +49,12 @@ internal static class MapTeleport {
     private const bool ExactTeleportEnabled = false;
 
     internal static bool IsLoadableScene(string sceneName) {
-        if (loadableCache.TryGetValue(sceneName, out var cached)) return cached;
-
-        var key = "Scenes/" + sceneName;
-        var loadable = false;
-        foreach (var locator in Addressables.ResourceLocators)
-            if (locator.Locate(key, typeof(SceneInstance), out _)) {
-                loadable = true;
-                break;
-            }
-
-        loadableCache[sceneName] = loadable;
-        return loadable;
+        if (addressableKeys == null) {
+            addressableKeys = [];
+            foreach (var locator in Addressables.ResourceLocators)
+                addressableKeys.UnionWith(locator.Keys);
+        }
+        return addressableKeys.Contains("Scenes/" + sceneName);
     }
 
     // The live GameMap, refreshed each frame from its own Update; read by MapNavigation.
