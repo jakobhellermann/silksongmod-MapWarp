@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.2
+- Fix performance bug where mapwarp would take a second to initialize on startup
+
 ## 1.2.1
 - Fix respawn point marker lagging behind by a frame
 
